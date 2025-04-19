@@ -36,7 +36,9 @@ export function ImageGenerator({
       const segment = sessionData.script.segments[index];
       const formData = new FormData();
       formData.append("index", index.toString());
-      formData.append("prompt", segment.image_description);
+      if (segment.image_description) {
+        formData.append("prompt", segment.image_description);
+      }
 
       const response = await fetch("/api/generate-images", {
         method: "POST",
@@ -66,7 +68,7 @@ export function ImageGenerator({
                 ...sessionData,
                 script: {
                   ...sessionData.script,
-                  segments: sessionData.script.segments.map((seg, idx) =>
+                  segments: sessionData.script.segments.map((seg: Script["segments"][0], idx: number) =>
                     idx === data.index ? { ...seg, image_path: data.image_path, direct_image_url: data.direct_image_url } : seg
                   ),
                 },
@@ -95,8 +97,9 @@ export function ImageGenerator({
     setProgressImages((prev) => ({ ...prev, [index]: "Đang tải lên..." }));
 
     try {
-      const formData = new FormData();
-      formData.append("index", index.toString());
+      if (file instanceof File) {
+        const formData = new FormData();
+        formData.append("index", index.toString());
       formData.append("file", file);
 
       const response = await fetch("/api/generate-images", {
@@ -127,7 +130,7 @@ export function ImageGenerator({
                 ...sessionData,
                 script: {
                   ...sessionData.script,
-                  segments: sessionData.script.segments.map((seg, idx) =>
+                  segments: sessionData.script.segments.map((seg: Script["segments"][0], idx: number) =>
                     idx === data.index ? { ...seg, image_path: data.image_path, direct_image_url: data.direct_image_url } : seg
                   ),
                 },
@@ -141,6 +144,10 @@ export function ImageGenerator({
               break;
           }
         }
+      }
+      } else {
+        // Nếu không phải file hợp lệ, không làm gì cả hoặc có thể báo lỗi
+        toast({ title: "Lỗi", description: "File không hợp lệ", variant: "destructive" });
       }
     } catch (error) {
       console.error("Error uploading image:", error);
