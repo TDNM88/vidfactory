@@ -1,7 +1,15 @@
 import type { NextConfig } from "next";
+import path from 'path';
 
+/** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
-  /* config options here */
+  transpilePackages: ['edge-tts'],
+  allowedDevOrigins: ["all"],
+  experimental: {
+    swcPlugins: [
+      ["@swc/plugin-transform-typescript", { module: "esnext" }],
+    ],
+  },
 };
 
 export default nextConfig;
