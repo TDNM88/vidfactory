@@ -1,48 +1,95 @@
-import { NextResponse } from "next/server"
-import { cookies } from "next/headers"
-import { v4 as uuidv4 } from "uuid"
+import { NextResponse } from "next/server";
+import * as fs from "node:fs/promises";
+import { join } from "path";
+import { exec } from "child_process";
+import { promisify } from "util";
 
-export async function POST(req: Request) {
-  try {
-    const { script, tts_service, voice } = await req.json()
+const execAsync = promisify(exec);
 
-    // Get session ID from cookies
-    const cookieStore = cookies()
-    const sessionId = cookieStore.get("session_id")?.value || uuidv4()
+export async function POST(request: Request) {
+  const { script } = await request.json();
 
-    // Set session ID cookie if not already set
-    if (!cookieStore.get("session_id")) {
-      cookieStore.set("session_id", sessionId)
-    }
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        for (let i = 0; i < script.segments.length; i++) {
+          const segment = script.segments[i];
+          const text = segment.script;
 
-    // Process each segment and generate audio
-    const segments = script.segments
-    const audioResults = []
+          if (!text) {
+            controller.enqueue(
+              JSON.stringify({
+                type: "error",
+                index: i,
+                message: "Không có nội dung để tạo giọng nói",
+              }) + "\n"
+            );
+            continue; // Continue to the next segment if no text
+          }
 
-    for (let i = 0; i < segments.length; i++) {
-      const segment = segments[i]
-      const scriptText = segment.script
+          controller.enqueue(
+            JSON.stringify({
+              type: "progress",
+              index: i,
+              message: `Đang tạo giọng nói cho phân đoạn ${i + 1}...`,
+            }) + "\n"
+          );
 
-      // In a real implementation, this would generate actual audio
-      // For now, we'll just use a placeholder path
-      const audioPath = `/placeholder-audio-${i + 1}.mp3`
-      segment.audio_path = audioPath
+          const fileName = `voice-${Date.now()}-${i}.mp3`;
+          const filePath = join(process.cwd(), "public", "generated", fileName);
+          const audioUrl = `/generated/${fileName}`;
 
-      audioResults.push({
-        segment: i + 1,
-        text: scriptText,
-        path: audioPath,
-      })
-    }
+          // Gọi Edge TTS CLI
+          try {
+            const command = `pnpm dlx edge-tts --voice vi-VN-HoaiMyNeural --text "${text}" --write-media "${filePath}"`;
+            await execAsync(command);
 
-    return NextResponse.json({
-      success: true,
-      audio: audioResults,
-      script,
-    })
-  } catch (error) {
-    console.error("Error generating audio:", error)
-    return NextResponse.json({ success: false, error: "Lỗi máy chủ nội bộ" }, { status: 500 })
-  }
+            // Kiểm tra file đã được tạo chưa
+            await fs.access(filePath);
+            // File exists, proceed to enqueue the success message
+            controller.enqueue(
+              JSON.stringify({
+                type: "voice",
+                index: i,
+                voice_path: filePath,
+                direct_voice_url: audioUrl,
+              }) + "\n"
+            );
+          } catch (err: any) {
+            console.error("Error generating voice with Edge TTS CLI:", err);
+            controller.enqueue(
+              JSON.stringify({
+                type: "error",
+                index: i,
+                message: "Lỗi khi tạo giọng nói: " + err.message,
+              }) + "\n"
+            );
+            controller.close();
+            return; // Stop the loop in case of error
+          }
+
+        }
+
+        controller.enqueue(JSON.stringify({ type: "complete" }) + "\n");
+        controller.close();
+      } catch (error) {
+        console.error("Error generating voice with Edge TTS CLI:", error);
+        controller.enqueue(
+          JSON.stringify({
+            type: "error",
+            message: "Lỗi khi tạo giọng nói: " + (error as Error).message,
+          }) + "\n"
+        );
+        controller.close();
+      }
+    },
+  });
+
+  return new NextResponse(stream, {
+    headers: {
+      "Content-Type": "text-event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
 }
-

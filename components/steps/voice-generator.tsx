@@ -127,7 +127,7 @@ export function VoiceGenerator({
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => handlePlayVoice(segment.direct_voice_url)}
+                  onClick={() => handlePlayVoice(segment.direct_voice_url ?? "")}
                   className="flex items-center gap-2"
                 >
                   <Play className="h-4 w-4" />
