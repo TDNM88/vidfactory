@@ -41,7 +41,7 @@ export async function POST(request: Request) {
 
           // Gọi Edge TTS CLI
           try {
-            const command = `pnpm dlx edge-tts --voice vi-VN-HoaiMyNeural --text "${text}" --write-media "${filePath}"`;
+            const command = `python -m edge_tts --voice vi-VN-HoaiMyNeural --text "${text}" --write-media "${filePath}"`;
             await execAsync(command);
 
             // Kiểm tra file đã được tạo chưa
