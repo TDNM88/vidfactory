@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { VOICE_OPTIONS } from "./voice-options";
+import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { GradientButton } from "../ui-custom/gradient-button";
 import { OutlineButton } from "../ui-custom/outline-button";
@@ -8,10 +10,20 @@ import { RefreshCw, Play } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import type { SessionData } from "../video-generator";
 
+type ScriptSegment = {
+  script: string;
+  image_description: string;
+  image_path?: string;
+  audio_path?: string;
+  direct_image_url?: string;
+  direct_voice_url?: string;
+  voice_sample_path?: string;
+};
+
 type VoiceGeneratorProps = {
   onNext: () => void;
   onPrevious: () => void;
-  sessionData: SessionData;
+  sessionData: Omit<SessionData, "script"> & { script: { segments: ScriptSegment[] } };
   setSessionData: (data: SessionData) => void;
   setIsLoading: (loading: boolean) => void;
   isLoading: boolean;
@@ -34,15 +46,21 @@ export function VoiceGenerator({
 
     try {
       const script = {
-        segments: [sessionData.script.segments[index]], // Chỉ gửi đoạn hiện tại
+        segments: [
+          {
+            ...sessionData.script.segments[index],
+            voice_sample_path: sessionData.script.segments[index].voice_sample_path || VOICE_OPTIONS[0].value,
+          },
+        ], // Chỉ gửi đoạn hiện tại
       };
+      console.log('Gửi originalIndex:', index);
 
       const response = await fetch("/api/generate-voice", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ script }),
+        body: JSON.stringify({ script, originalIndex: index }), // TRUYỀN ĐÚNG originalIndex RA NGOÀI
       });
 
       if (!response.body) throw new Error("No response body");
@@ -59,6 +77,7 @@ export function VoiceGenerator({
 
         for (const line of lines) {
           const data = JSON.parse(line);
+          console.log('Nhận dữ liệu từ backend:', data);
           switch (data.type) {
             case "progress":
               setProgressVoices((prev) => ({ ...prev, [data.index]: data.message }));
@@ -67,9 +86,10 @@ export function VoiceGenerator({
               setSessionData({
                 ...sessionData,
                 script: {
+                  title: sessionData.script.title,
                   ...sessionData.script,
                   segments: sessionData.script.segments.map((seg, idx) =>
-                    idx === data.index
+                    idx === (data.originalIndex ?? data.index)
                       ? { ...seg, voice_path: data.voice_path, direct_voice_url: data.direct_voice_url }
                       : seg
                   ),
@@ -122,6 +142,30 @@ export function VoiceGenerator({
             )}
           </div>
           <div className="w-full md:w-64">
+            <div className="mb-2">
+              <select
+                className="w-full border rounded px-2 py-1"
+                value={segment.voice_sample_path || VOICE_OPTIONS[0].value}
+                onChange={(e) => {
+                  setSessionData({
+                    ...sessionData,
+                    script: {
+                      ...sessionData.script,
+                      segments: sessionData.script.segments.map((seg, idx) =>
+                        idx === index ? { ...seg, voice_sample_path: e.target.value } : seg
+                      ),
+                      title: sessionData.script.title,
+                    },
+                  });
+                }}
+              >
+                {VOICE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="relative h-16 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
               {segment.direct_voice_url ? (
                 <Button

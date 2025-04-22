@@ -1,16 +1,21 @@
 import { NextResponse } from "next/server"
 
-// Mock data for available music files
-const musicFiles = [
-  { filename: "upbeat.mp3", path: "/static/music/upbeat.mp3" },
-  { filename: "relaxing.mp3", path: "/static/music/relaxing.mp3" },
-  { filename: "energetic.mp3", path: "/static/music/energetic.mp3" },
-  { filename: "emotional.mp3", path: "/static/music/emotional.mp3" },
-  { filename: "corporate.mp3", path: "/static/music/corporate.mp3" },
-]
+import { readdir } from "fs/promises";
+import { join } from "path";
+
+// Lấy danh sách file nhạc nền từ thư mục public/music
+async function getMusicFiles() {
+  const musicDir = join(process.cwd(), "public", "music");
+  const files = await readdir(musicDir);
+  return files.filter(f => f.endsWith('.mp3')).map(filename => ({
+    filename,
+    path: `/music/${filename}`
+  }));
+}
 
 export async function GET() {
   try {
+    const musicFiles = await getMusicFiles();
     return NextResponse.json({
       music_files: musicFiles,
     })

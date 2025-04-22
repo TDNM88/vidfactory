@@ -1,20 +1,20 @@
 import { NextResponse } from "next/server";
 import * as fs from "node:fs/promises";
 import { join } from "path";
-import { exec } from "child_process";
-import { promisify } from "util";
-
-const execAsync = promisify(exec);
+import { generateVoiceWithGradio } from "./gradio-tts-util";
+import { phonemizeVietnamese } from "../../../lib/phonemizeVietnamese";
 
 export async function POST(request: Request) {
-  const { script } = await request.json();
+  const { script, originalIndex } = await request.json(); // originalIndex lấy từ request body
 
   const stream = new ReadableStream({
     async start(controller) {
       try {
         for (let i = 0; i < script.segments.length; i++) {
           const segment = script.segments[i];
-          const text = segment.script;
+          let text = segment.script;
+// Chuyển sang phiên âm tiếng Việt (bao gồm số, ký hiệu, latin)
+text = phonemizeVietnamese(text);
 
           if (!text) {
             controller.enqueue(
@@ -39,19 +39,25 @@ export async function POST(request: Request) {
           const filePath = join(process.cwd(), "public", "generated", fileName);
           const audioUrl = `/generated/${fileName}`;
 
-          // Gọi Edge TTS CLI
-          const command = `edge-tts --voice vi-VN-HoaiMyNeural --text "${text}" --write-media "${filePath}"`;
-          await execAsync(command);
+          // Xác định file giọng mẫu nếu có
+          const refAudioPath = segment.voice_sample_path
+            ? join(process.cwd(), "public", segment.voice_sample_path.replace(/^\//, ""))
+            : null;
+
+          // Gọi Gradio API để tạo file mp3 với giọng mẫu
+          await generateVoiceWithGradio({ text, outputPath: filePath, refAudioPath });
 
           // Kiểm tra file đã được tạo chưa
           await fs.access(filePath).catch(async () => {
             throw new Error(`Không thể tạo file âm thanh cho phân đoạn ${i + 1}`);
           });
 
+          console.log("DEBUG originalIndex:", originalIndex, "index:", i);
           controller.enqueue(
             JSON.stringify({
               type: "voice",
               index: i,
+              originalIndex: originalIndex, // luôn trả về originalIndex truyền lên
               voice_path: filePath,
               direct_voice_url: audioUrl,
             }) + "\n"

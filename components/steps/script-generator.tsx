@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ScriptEditor } from "./ScriptEditor";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -129,20 +130,28 @@ export function ScriptGenerator({
           </GradientButton>
         </div>
       ) : (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Tiêu đề: {sessionData.script.title}</h3>
-          {sessionData.script.segments.map((seg, idx) => (
-            <div key={idx} className="text-sm text-gray-700">
-              <p>
-                <span className="font-medium">Phân đoạn {idx + 1}:</span> {seg.script}
-              </p>
-              <p className="text-gray-500 italic">Mô tả ảnh: {seg.image_description}</p>
-            </div>
-          ))}
-          <GradientButton onClick={onNext} className="w-full">
-            Tiếp tục
+        <>
+          <ScriptEditor
+            script={sessionData.script}
+            setScript={(script: Script) => setSessionData({ ...sessionData, script })}
+          />
+          <GradientButton
+            onClick={async () => {
+              const editor = document.activeElement as HTMLElement;
+              if (editor) editor.blur();
+              setIsLoading(true);
+              await new Promise(r => setTimeout(r, 400)); // Hiệu ứng loading nhẹ
+              setIsLoading(false);
+              onNext();
+            }}
+            className="w-full mt-6"
+            disabled={isLoading || (sessionData && sessionData.script.segments.some(seg => !seg.script.trim() || !seg.image_description.trim()))}
+            isLoading={isLoading}
+            loadingText="Đang xác nhận..."
+          >
+            Xác nhận kịch bản
           </GradientButton>
-        </div>
+        </>
       )}
     </div>
   );

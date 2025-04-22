@@ -57,21 +57,46 @@ export async function POST(request: Request) {
         const imageUrl = `/generated/${fileName}`;
 
         if (file) {
-          // Xử lý upload ảnh
-          controller.enqueue(
-            JSON.stringify({
-              type: "progress",
-              index,
-              message: `Đang xử lý ảnh upload cho phân đoạn ${index + 1}...`,
-            }) + "\n"
-          );
+  // Xử lý upload ảnh
+  controller.enqueue(
+    JSON.stringify({
+      type: "progress",
+      index,
+      message: `Đang xử lý ảnh upload cho phân đoạn ${index + 1}...`,
+    }) + "\n"
+  );
 
-          const arrayBuffer = await file.arrayBuffer();
-          buffer = Buffer.from(arrayBuffer);
-          buffer = await sharp(buffer)
-            .resize(512, 512, { fit: "fill" })
-            .png()
-            .toBuffer();
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    buffer = Buffer.from(arrayBuffer);
+    buffer = await sharp(buffer)
+      .resize(512, 512, { fit: "fill" })
+      .png()
+      .toBuffer();
+
+    await fs.mkdir(join(process.cwd(), "public", "generated"), { recursive: true });
+    await fs.writeFile(filePath, buffer);
+
+    controller.enqueue(
+      JSON.stringify({
+        type: "image",
+        index,
+        image_path: filePath,
+        direct_image_url: imageUrl,
+      }) + "\n"
+    );
+    controller.close();
+  } catch (error) {
+    controller.enqueue(
+      JSON.stringify({
+        type: "error",
+        index,
+        message: "Lỗi khi lưu ảnh upload: " + (error as Error).message,
+      }) + "\n"
+    );
+    controller.close();
+    return;
+  }
         } else if (prompt && apiKey) {
           // Tạo ảnh bằng Gemini API
           controller.enqueue(

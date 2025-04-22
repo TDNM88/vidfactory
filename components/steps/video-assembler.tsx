@@ -23,6 +23,8 @@ type VideoAssemblerProps = {
   isLoading: boolean
 }
 
+type VideoGenerationMethod = "local" | "tams"
+
 export function VideoAssembler({
   onNext,
   onPrevious,
@@ -36,6 +38,7 @@ export function VideoAssembler({
   const [videoPath, setVideoPath] = useState("")
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [generationMethod, setGenerationMethod] = useState<VideoGenerationMethod>("local")
 
   useEffect(() => {
     // Fetch available music files
@@ -63,24 +66,45 @@ export function VideoAssembler({
   const handleCreateVideo = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch("/api/create-video", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          script: sessionData.script,
-          background_music: backgroundMusic,
-        }),
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        setVideoPath(data.video_path)
-        setSessionData({
-          ...sessionData,
-          script: data.script,
+      let data: any = {}
+      if (generationMethod === "local") {
+        const response = await fetch("/api/create-video", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            script: sessionData.script,
+            background_music: backgroundMusic,
+          }),
         })
+        data = await response.json()
+        if (data.success) {
+          setVideoPath(data.video_path)
+          setSessionData({
+            ...sessionData,
+            script: data.script,
+          })
+        }
+      } else if (generationMethod === "tams") {
+        // Lấy url ảnh đầu tiên từ script (hoặc tuỳ chỉnh theo use case)
+        const imageUrl = sessionData.script?.segments?.[0]?.image_path || sessionData.script?.segments?.[0]?.direct_image_url
+        if (!imageUrl) throw new Error("Không có ảnh để tạo video qua TAMS")
+        const response = await fetch("/api/create-video-tams", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            imageUrl,
+            resolution: "1:1 [1024x1024 square]",
+          }),
+        })
+        data = await response.json()
+        if (data.success) {
+          setVideoPath(data.resultUrl)
+        }
+      }
+      if (data.success) {
+        setTimeout(() => {
+          onNext();
+        }, 300)
       } else {
         alert(`Lỗi: ${data.error}`)
       }
@@ -127,6 +151,21 @@ export function VideoAssembler({
       </div>
 
       <div className="space-y-6">
+        <div className="space-y-2">
+          <Label htmlFor="generation-method" className="text-sm font-medium">Phương thức tạo video</Label>
+          <Select
+            value={generationMethod}
+            onValueChange={(value) => setGenerationMethod(value as VideoGenerationMethod)}
+          >
+            <SelectTrigger id="generation-method" className="rounded-xl border-gray-200 focus:border-primary focus:ring-primary h-12 input-focus-ring">
+              <SelectValue placeholder="Chọn phương thức tạo video" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              <SelectItem value="local">Tạo video trên máy chủ (nhanh, chuẩn)</SelectItem>
+              <SelectItem value="tams">Tạo video qua TAMS (TensorArt API)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <motion.div
           className="space-y-2"
           initial={{ opacity: 0, y: 10 }}

@@ -21,6 +21,7 @@ export type Script = {
     audio_path?: string;
     direct_image_url?: string;
     direct_voice_url?: string;
+    voice_sample_path?: string;
   }[];
   video_path?: string;
   thumbnail_path?: string;

@@ -26,22 +26,23 @@ export async function POST(req: Request) {
 
     // Create prompt
     const prompt = `
-      Hãy tạo một kịch bản video cho mạng xã hội ${platform} với chủ đề: ${subject}.
+      Hãy đóng vai trò là biên kịch và chuyên gia sáng tạo nội dung video cho mạng xã hội ${platform}. Hãy viết một kịch bản video hấp dẫn với chủ đề: ${subject}.
       
       Tóm tắt nội dung: ${summary}
-      Độ dài video mong muốn: ${duration}
+      Độ dài video mong muốn: ${duration}. Hãy đảm bảo tổng số phân đoạn, độ dài và nội dung lời thoại của từng phân đoạn phải phù hợp với tổng thời lượng này (ví dụ: mỗi phân đoạn khoảng 3-5 câu, tổng số phân đoạn và độ dài lời thoại vừa phải để video không quá ngắn hoặc quá dài so với ${duration}). Nếu cần, hãy tăng số phân đoạn hoặc kéo dài nội dung hợp lý để phù hợp thời lượng.
       
-      Kịch bản cần được chia thành các phân đoạn rõ ràng, mỗi phân đoạn bao gồm:
-      1. Nội dung lời thoại
-      2. Mô tả chi tiết về hình ảnh minh họa phù hợp với nội dung
+      Kịch bản cần chia thành các phân đoạn logic, mỗi phân đoạn gồm:
+      1. Lời thoại ngắn gọn, truyền cảm hứng, tự nhiên, phù hợp với người xem trên nền tảng ${platform}, và phù hợp với thời lượng tổng thể.
+      2. Mô tả ảnh minh họa cực kỳ chi tiết, sinh động, sáng tạo, truyền cảm hứng. Mô tả phải rõ ràng về: bối cảnh, phong cách, màu sắc chủ đạo, cảm xúc, ánh sáng, bố cục, nhân vật (nếu có) và phải gắn sát nội dung lời thoại. Có thể gợi ý style ảnh (ví dụ: cinematic, flat lay, vibrant colors, soft light, realistic, v.v.).
+      3. Mô tả ảnh KHÔNG được bắt đầu bằng các cụm từ như "Mô tả ảnh:", "Ảnh:", "Mô tả:", "Image description:", v.v. Chỉ ghi trực tiếp nội dung mô tả, không lặp lại cấu trúc thừa. Nếu lỡ có tiền tố này, hãy tự động loại bỏ trong kết quả trả về.
       
       Định dạng kết quả trả về phải là JSON với cấu trúc sau:
       {
           "title": "Tiêu đề video",
           "segments": [
               {
-                  "script": "Nội dung lời thoại phân đoạn 1",
-                  "image_description": "Mô tả chi tiết về hình ảnh minh họa cho phân đoạn 1"
+                  "script": "Lời thoại phân đoạn 1",
+                  "image_description": "Mô tả chi tiết, sáng tạo, truyền cảm hứng cho ảnh minh họa phân đoạn 1"
               },
               ...
           ]
