@@ -17,7 +17,7 @@ type FinalOutputProps = {
   isLoading: boolean
 }
 
-export function FinalOutput({ onPrevious, sessionData, setSessionData, setIsLoading, isLoading }: FinalOutputProps) {
+export default function FinalOutput({ onPrevious, sessionData, setSessionData, setIsLoading, isLoading }: FinalOutputProps) {
   const [thumbnailPrompt, setThumbnailPrompt] = useState("")
   const [thumbnailPath, setThumbnailPath] = useState(sessionData.script.thumbnail_path || "")
   const [isDownloaded, setIsDownloaded] = useState(false)

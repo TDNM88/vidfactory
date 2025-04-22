@@ -12,10 +12,11 @@ export function StepIndicator({ currentStep, progress }: StepIndicatorProps) {
   const steps = [
     { id: 1, name: "Kịch bản" },
     { id: 2, name: "Hình ảnh" },
-    { id: 3, name: "Giọng đọc" },
-    { id: 4, name: "Tạo video" },
-    { id: 5, name: "Kết quả" },
-  ]
+    { id: 3, name: "Xác nhận kịch bản" },
+    { id: 4, name: "Giọng đọc" },
+    { id: 5, name: "Tạo video" },
+    { id: 6, name: "Kết quả" },
+  ];
 
   return (
     <div className="relative mb-12">

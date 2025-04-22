@@ -3,6 +3,7 @@ import * as fs from "node:fs/promises";
 import { join } from "path";
 import { exec } from "child_process";
 import { promisify } from "util";
+import os from "os";
 
 const execAsync = promisify(exec);
 
@@ -36,8 +37,8 @@ export async function POST(request: Request) {
           );
 
           const fileName = `voice-${Date.now()}-${i}.mp3`;
-          const filePath = join(process.cwd(), "public", "generated", fileName);
-          const audioUrl = `/generated/${fileName}`;
+          const filePath = join(os.tmpdir(), fileName);
+          const audioUrl = filePath;
 
           // Gọi Edge TTS CLI
           try {

@@ -17,7 +17,8 @@ export async function generateVoiceWithGradio({
   speed?: number
 }) {
   // Đọc HuggingFace token từ biến môi trường
-  const hfToken = process.env.HF_TOKEN;
+  const hfTokenRaw = process.env.HF_TOKEN;
+  const hfToken = hfTokenRaw && hfTokenRaw.startsWith("hf_") ? (hfTokenRaw as `hf_${string}`) : undefined;
   // Kết nối tới Space, truyền token nếu có
   const client = await Client.connect("hynt/F5-TTS-Vietnamese-100h", { hf_token: hfToken });
 

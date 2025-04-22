@@ -2,9 +2,21 @@ import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { v4 as uuidv4 } from "uuid"
 
+import { viduImg2Video } from "./vidu-img2video";
+
 export async function POST(req: Request) {
   try {
-    const { script, background_music } = await req.json()
+    const body = await req.json();
+    if (body?.vidu_img2video) {
+      // Nhận các tham số từ client cho API VIDU
+      const result = await viduImg2Video(body.vidu_img2video);
+      if (result.error) {
+        return NextResponse.json({ success: false, error: result.error }, { status: 400 });
+      }
+      return NextResponse.json({ success: true, ...result });
+    }
+    // Logic cũ:
+    const { script, background_music } = body;
 
     // Get session ID from cookies (must await cookies() in Next.js 13+)
     const cookieStore = await cookies();
@@ -39,7 +51,8 @@ export async function POST(req: Request) {
       const img = seg.image_path || seg.direct_image_url;
       const audio = seg.audio_path || seg.voice_path || seg.direct_voice_url;
       if (!img || !audio) continue;
-      const segmentVideo = join(process.cwd(), "public", "generated", `segment-${Date.now()}-${i}.mp4`);
+      const os = await import("os");
+      const segmentVideo = join(os.tmpdir(), `segment-${Date.now()}-${i}.mp4`);
       // Lấy kích thước nền tảng từ script, fallback nếu không có
       const platform_width = script.platform_width || 1080;
       const platform_height = script.platform_height || 1920;
@@ -62,9 +75,13 @@ export async function POST(req: Request) {
     }
 
     // 2. Ghép các segment video lại thành video tổng
-    const listFile = join(process.cwd(), "public", "generated", `list-${Date.now()}.txt`);
+    if (segmentVideoPaths.length === 0) {
+      return NextResponse.json({ success: false, error: "Không có segment hợp lệ (thiếu ảnh hoặc audio) để ghép video." }, { status: 400 });
+    }
+    const os = await import("os");
+    const listFile = join(os.tmpdir(), `list-${Date.now()}.txt`);
     await fs.writeFile(listFile, segmentVideoPaths.map(path => `file '${path}'`).join('\n'));
-    const outputVideo = join(process.cwd(), "public", "generated", `video-${Date.now()}.mp4`);
+    const outputVideo = join(os.tmpdir(), `video-${Date.now()}.mp4`);
     await execFilePromise(ffmpegPath, [
       "-y",
       "-f", "concat",
@@ -74,25 +91,36 @@ export async function POST(req: Request) {
       outputVideo
     ]);
 
-    // 3. Thêm background music nếu có
+    // 3. Nếu có nhạc nền, chèn nhạc nền vào video tổng
     let finalVideo = outputVideo;
-    if (background_music) {
-      const withMusic = join(process.cwd(), "public", "generated", `video-music-${Date.now()}.mp4`);
+    if (background_music && background_music !== "none") {
       const musicPath = join(process.cwd(), "public", "music", background_music);
-      await execFilePromise(ffmpegPath, [
-        "-y",
-        "-i", outputVideo,
-        "-i", musicPath,
-        "-filter_complex", "[0:a][1:a]amix=inputs=2:duration=first:dropout_transition=3",
-        "-c:v", "copy",
-        "-shortest",
-        withMusic
-      ]);
-      finalVideo = withMusic;
+      if (existsSync(musicPath)) {
+        const withMusic = join(os.tmpdir(), `video-music-${Date.now()}.mp4`);
+        await execFilePromise(ffmpegPath, [
+          "-y",
+          "-i", outputVideo,
+          "-i", musicPath,
+          "-filter_complex", "[0:a][1:a]amix=inputs=2:duration=first:dropout_transition=3",
+          "-c:v", "copy",
+          "-shortest",
+          withMusic
+        ]);
+        finalVideo = withMusic;
+      }
     }
 
+    // Đảm bảo file video được copy vào public/generated trước khi trả về đường dẫn public
+    const publicDir = join(process.cwd(), "public", "generated");
+    if (!existsSync(publicDir)) {
+      await fs.mkdir(publicDir, { recursive: true });
+    }
+    const filename = finalVideo.split(/[/\\]/).pop();
+    const publicPath = join(publicDir, filename);
+    await fs.copyFile(finalVideo, publicPath);
+
     // Đường dẫn public
-    const videoPath = "/generated/" + finalVideo.split("generated")[1].replace(/\\/g, "/");
+    const videoPath = "/generated/" + filename.replace(/\\/g, "/");
     script.video_path = videoPath;
 
     return NextResponse.json({
