@@ -3,8 +3,9 @@ import { NextResponse } from "next/server"
 const TENSOR_ART_API_URL = "https://ap-east-1.tensorart.cloud/v1"
 const WORKFLOW_TEMPLATE_ID = "809397844309168055"
 
-// Hàm tạo job video qua TAMS
-// Upload image to TensorArt and get resourceId
+import crypto from 'crypto';
+
+// Hàm upload image giữ nguyên
 async function uploadImageToTensorArt(imageData: string) {
   const url = `${TENSOR_ART_API_URL}/resource/image`
   const headers = {
@@ -24,6 +25,48 @@ async function uploadImageToTensorArt(imageData: string) {
   }
   const resourceResponse = JSON.parse(responseText)
   const putUrl = resourceResponse.putUrl as string
+
+// Hàm tạo job video qua TAMS cho templateId 809397844309168055
+const createVideoJob = async (resourceId: string, resolution: string) => {
+  const apiKey = process.env.TENSOR_ART_API_KEY;
+  const url = `${TENSOR_ART_API_URL}/jobs/workflow/template`;
+  const request_id = crypto.createHash('md5').update('' + Date.now()).digest('hex');
+
+  const body = {
+    request_id,
+    templateId: WORKFLOW_TEMPLATE_ID,
+    fields: {
+      fieldAttrs: [
+        {
+          nodeId: "27",
+          fieldName: "image",
+          fieldValue: resourceId
+        },
+        {
+          nodeId: "28",
+          fieldName: "size_selected",
+          fieldValue: resolution
+        }
+      ]
+    }
+  };
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data?.message || "Failed to create job");
+  return data.job?.id;
+}
+
+export { createVideoJob };
+
   const resourceId = resourceResponse.resourceId as string
   const putHeaders = (resourceResponse.headers as Record<string, string>) || { 'Content-Type': 'image/png' }
   if (!putUrl || !resourceId) {
