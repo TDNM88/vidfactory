@@ -111,9 +111,13 @@ export async function POST(req: Request) {
     }
 
     // trả về đường dẫn của file tạm
-    const filename = finalVideo.split(/[/\\]/).pop();    
-    // Đường dẫn public
-    const videoPath = "/generated/" + filename.replace(/\\/g, "/");
+    let filename = finalVideo.split(/[/\\]/).pop();
+    if (!filename) {
+      filename = "output.mp4";
+    }
+    // Đường dẫn của file tạm
+    const videoPath = finalVideo
+
     script.video_path = videoPath;
 
     return NextResponse.json({
