@@ -103,12 +103,12 @@ export default function FinalScriptEditor({ script, locked, onConfirm, onChange,
               {locked && (
                 <div className="mt-4 p-2 bg-gray-50 rounded border border-dashed border-gray-300">
                   <div className="mb-2 font-semibold text-gray-700">Ảnh minh họa:</div>
-                  {seg.image_path || seg.direct_image_url ? (
+                  {seg.direct_image_url ? (
                     <img
-                      src={seg.direct_image_url || seg.image_path}
+                      src={seg.direct_image_url}
                       alt={"Ảnh minh họa phân đoạn " + (idx + 1)}
                       className="w-full max-h-40 object-contain rounded mb-2"
-                    />
+                  />
                   ) : (
                     <div className="text-gray-400 italic mb-2">Chưa có ảnh</div>
                   )}
@@ -145,7 +145,7 @@ export default function FinalScriptEditor({ script, locked, onConfirm, onChange,
                             }
                             if (imageUrl) {
                               const newSegments = script.segments.map((s, i) =>
-                                i === idx ? { ...s, image_path: imageUrl, direct_image_url: imageUrl } : s
+                                i === idx ? { ...s, image_path: undefined, direct_image_url: imageUrl } : s
                               );
                               onChange({ ...script, segments: newSegments });
                             }
@@ -184,7 +184,7 @@ export default function FinalScriptEditor({ script, locked, onConfirm, onChange,
                           }
                           if (imageUrl) {
                             const newSegments = script.segments.map((s, i) =>
-                              i === idx ? { ...s, image_path: imageUrl, direct_image_url: imageUrl } : s
+                              i === idx ? { ...s, image_path: undefined, direct_image_url: imageUrl } : s
                             );
                             onChange({ ...script, segments: newSegments });
                           }
@@ -195,7 +195,7 @@ export default function FinalScriptEditor({ script, locked, onConfirm, onChange,
                       type="button"
                       disabled={loadingSegments[idx]}
                     >
-                      {loadingSegments[idx] ? "Đang tạo ảnh..." : "Tạo ảnh tự động"}
+                      {loadingSegments[idx] ? "Đang tạo ảnh..." : "Tạo ảnh tự động"} 
                     </button>
                     {(seg.image_path || seg.direct_image_url) && (
                       <button
