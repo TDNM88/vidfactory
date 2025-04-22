@@ -65,7 +65,6 @@ const createVideoJob = async (resourceId: string, resolution: string) => {
   return data.job?.id;
 }
 
-export { createVideoJob };
 
   const resourceId = resourceResponse.resourceId as string
   const putHeaders = (resourceResponse.headers as Record<string, string>) || { 'Content-Type': 'image/png' }
