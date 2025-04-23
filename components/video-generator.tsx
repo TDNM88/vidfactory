@@ -1,32 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { DashboardWorkflow } from "./steps/dashboard-workflow";
+import DashboardWorkflow from "./dashboard-workflow";
 import { GlassCard } from "./ui-custom/glass-card";
 import { AnimatePresence, motion } from "framer-motion";
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6;
 
-import type { Segment } from "./steps/image-generator";
+// import type { Segment } from "./steps/image-generator"; // File does not exist, comment out or update path if needed
 
-export type Script = {
-  title: string;
-  segments: Segment[];
-  video_path?: string;
-  thumbnail_path?: string;
-};
-
-export type SessionData = {
-  session_id: string;
-  script: Script;
-  platform?: string;
-  duration?: number;
-};
+import type { SessionData, Script, Segment } from "./types";
 
 export function VideoGenerator() {
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [form, setForm] = useState({ topic: "", summary: "", platform: "TikTok", duration: 60 });
+  const [form, setForm] = useState({ topic: "", summary: "", platform: "TikTok", duration: 60 }); // duration là number
   const [isFormLoading, setIsFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -105,14 +93,13 @@ export function VideoGenerator() {
           <div>
             <label className="block mb-1 font-medium">Độ dài video (giây)</label>
             <input
+              id="duration"
               type="number"
-              min={10}
-              max={600}
               className="w-full border rounded px-3 py-2"
               value={form.duration}
               onChange={e => setForm(f => ({ ...f, duration: Number(e.target.value) }))}
               required
-            />
+            /> // Đảm bảo duration là number
           </div>
           {formError && <div className="text-red-600 text-sm">{formError}</div>}
           <button
