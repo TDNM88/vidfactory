@@ -83,7 +83,7 @@ export async function POST(req: Request) {
     const segmentVideoPaths: string[] = [];
     for (let i = 0; i < script.segments.length; i++) {
       const seg = script.segments[i];
-      const img = seg.image_path || seg.direct_image_url;
+      const img = seg.direct_image_url;
       const audio = seg.audio_path || seg.voice_path || seg.direct_voice_url;
       if (!img || !audio) continue;
       const os = await import("os");
@@ -145,17 +145,14 @@ export async function POST(req: Request) {
       }
     }
 
-    // Đảm bảo file video được copy vào public/generated trước khi trả về đường dẫn public
-    const publicDir = join(process.cwd(), "public", "generated");
-    if (!existsSync(publicDir)) {
-      await fs.mkdir(publicDir, { recursive: true });
+    // trả về đường dẫn của file tạm
+    let filename = finalVideo.split(/[/\\]/).pop();
+    if (!filename) {
+      filename = "output.mp4";
     }
-    const filename = finalVideo.split(/[/\\]/).pop();
-    const publicPath = join(publicDir, filename);
-    await fs.copyFile(finalVideo, publicPath);
+    // Đường dẫn của file tạm
+    const videoPath = finalVideo
 
-    // Đường dẫn public
-    const videoPath = "/generated/" + filename.replace(/\\/g, "/");
     script.video_path = videoPath;
 
     return NextResponse.json({
