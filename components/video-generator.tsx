@@ -25,6 +25,8 @@ export type Script = {
 export type SessionData = {
   session_id: string;
   script: Script;
+  platform?: string;
+  duration?: number;
 };
 
 export function VideoGenerator() {

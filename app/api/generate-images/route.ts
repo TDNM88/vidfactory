@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import * as fs from "node:fs/promises";
 import { join } from "path";
+import { tmpdir } from "os";
 import sharp from "sharp";
 
 async function generateWithRetry(ai: GoogleGenAI, model: string, prompt: string, retries = 3) {
@@ -53,8 +54,8 @@ export async function POST(request: Request) {
       try {
         let buffer: Buffer;
         const fileName = `image-${Date.now()}-${index}.png`;
-        const filePath = join(process.cwd(), "public", "generated", fileName);
-        const imageUrl = `/generated/${fileName}`;
+        const filePath = join(tmpdir(), fileName);
+        const imageUrl = `/api/temp-images/${fileName}`;
 
         if (file) {
   // Xử lý upload ảnh
@@ -74,14 +75,12 @@ export async function POST(request: Request) {
       .png()
       .toBuffer();
 
-    await fs.mkdir(join(process.cwd(), "public", "generated"), { recursive: true });
     await fs.writeFile(filePath, buffer);
 
     controller.enqueue(
       JSON.stringify({
         type: "image",
         index,
-        image_path: filePath,
         direct_image_url: imageUrl,
       }) + "\n"
     );
@@ -169,14 +168,13 @@ if (typeof imageData !== "string") {
 }
 buffer = Buffer.from(imageData, "base64");
               // Lưu ảnh
-              fs.mkdir(join(process.cwd(), "public", "generated"), { recursive: true })
-                .then(() => fs.writeFile(filePath, buffer))
+               fs.writeFile(filePath, buffer)
                 .then(() => {
                   controller.enqueue(
                     JSON.stringify({
                       type: "image",
                       index,
-                      image_path: filePath,
+                     
                       direct_image_url: imageUrl,
                     }) + "\n"
                   );

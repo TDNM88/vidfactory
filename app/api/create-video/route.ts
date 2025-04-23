@@ -4,9 +4,44 @@ import { v4 as uuidv4 } from "uuid"
 
 import { viduImg2Video } from "./vidu-img2video";
 
+import { createViduUploadSession, uploadFileToViduPutUrl, processImageToPlatformSize } from './vidu-upload-util';
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    // === API mới: Tạo video VIDU từ ảnh minh họa, resize đúng size nền tảng ===
+    if (body?.vidu_image && body?.platform_width && body?.platform_height && body?.prompt) {
+      // 1. Nhận ảnh (base64 hoặc url)
+      let imageBuffer: Buffer;
+      if (body.vidu_image.startsWith('http')) {
+        const imgRes = await fetch(body.vidu_image);
+        imageBuffer = Buffer.from(await imgRes.arrayBuffer());
+      } else {
+        // base64
+        imageBuffer = Buffer.from(body.vidu_image.replace(/^data:image\/(png|jpg|jpeg);base64,/, ''), 'base64');
+      }
+      // 2. Resize đúng size nền tảng
+      const resizedBuffer = await processImageToPlatformSize(imageBuffer, Number(body.platform_width), Number(body.platform_height));
+      // 3. Tạo session upload
+      const uploadSession = await createViduUploadSession('segment.png', resizedBuffer.length, 'image/png') as { id: string, put_url: string, uri: string };
+      // 4. Upload file lên VIDU
+      await uploadFileToViduPutUrl(uploadSession.put_url, resizedBuffer, 'image/png');
+      // 5. Gửi lệnh tạo video
+      const viduParams = {
+        model: 'vidu2.0' as const,
+        images: [uploadSession.uri as string],
+        prompt: String(body.prompt),
+        duration: 4,
+        resolution: '720p' as const,
+        movement_amplitude: 'auto' as const,
+      };
+      const result = await viduImg2Video(viduParams);
+      if (result.error) {
+        return NextResponse.json({ success: false, error: result.error }, { status: 400 });
+      }
+      return NextResponse.json({ success: true, task_id: result.task_id });
+    }
+    // --- Luồng cũ ---
     if (body?.vidu_img2video) {
       // Nhận các tham số từ client cho API VIDU
       const result = await viduImg2Video(body.vidu_img2video);
