@@ -25,13 +25,25 @@ export async function POST(req: NextRequest) {
 
   await generateVoiceWithGradio({ text, outputPath: audioFile, refAudioPath });
 
-  // Ghép ảnh và audio thành video bằng ffmpeg
+  // Bước 1: Đảm bảo ảnh đầu vào có width/height chẵn
+  const paddedImageFile = audioFile.replace(/\.wav$/, "_even.jpg");
+  await new Promise((resolve, reject) => {
+    const ffmpegPad = spawn("ffmpeg", [
+      "-y",
+      "-i", imageUrl,
+      "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2",
+      paddedImageFile
+    ]);
+    ffmpegPad.on("close", code => (code === 0 ? resolve(null) : reject(new Error("ffmpeg pad failed"))));
+  });
+
+  // Bước 2: Ghép ảnh đã chuẩn hóa và audio thành video
   const videoFile = audioFile.replace(/\.wav$/, ".mp4");
   await new Promise((resolve, reject) => {
     const ffmpeg = spawn("ffmpeg", [
       "-y",
       "-loop", "1",
-      "-i", imageUrl,
+      "-i", paddedImageFile,
       "-i", audioFile,
       "-c:v", "libx264",
       "-c:a", "aac",

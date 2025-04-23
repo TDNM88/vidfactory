@@ -538,50 +538,11 @@ const [script, setScript] = useState(() => ({
                     </GradientButton>
                   </div>
                 )}
-
-                {/* Nút thao tác - Xóa và Thêm */}
-                {!locked && (
-                  <div className="flex justify-center gap-2">
-                    {script.segments.length > 1 && (
-                      <OutlineButton
-                        className="px-2 py-1 text-sm bg-red-500 text-white hover:bg-red-600"
-                        data-tip="Xóa phân đoạn này"
-                        onClick={() => {
-                          const newScript = { ...script };
-                          newScript.segments = script.segments.filter((_, i) => i !== idx);
-                          handleChange(newScript);
-                          setVideoResults((prev) => prev.filter((_, i) => i !== idx));
-                          toast.info(`Đã xóa phân đoạn ${idx + 1}`);
-                        }}
-                      >
-                        Xóa
-                      </OutlineButton>
-                    )}
-                    {idx === script.segments.length - 1 && (
-                      <OutlineButton
-                        className="px-2 py-1 text-sm bg-green-50 text-green-700 hover:bg-green-200"
-                        data-tip="Thêm phân đoạn mới"
-                        onClick={() => {
-                          const newScript = { ...script };
-                          newScript.segments = [
-                            ...script.segments,
-                            { script: "", image_description: "", video_path: "" },
-                          ];
-                          handleChange(newScript);
-                          setVideoResults((prev) => [...prev, []]);
-                          toast.info("Đã thêm phân đoạn mới");
-                        }}
-                      >
-                        Thêm
-                      </OutlineButton>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
           </details>
         ))}
-      </div>
+        </div>
 
       {/* Modal xem trước ảnh */}
       <Modal open={!!previewImage} onClose={() => setPreviewImage(null)}>
@@ -590,30 +551,41 @@ const [script, setScript] = useState(() => ({
 
       {/* Modal nhập URL video */}
       <Modal open={!!videoUrlModal} onClose={() => setVideoUrlModal(null)}>
-        <div className="p-6 max-w-md mx-auto bg-white rounded-lg">
-          <h3 className="text-lg font-semibold mb-4">
-            Nhập URL video {videoUrlModal?.type} cho phân đoạn {videoUrlModal?.idx !== undefined ? videoUrlModal.idx + 1 : ""}
-          </h3>
-          <input
-            type="text"
-            className="w-full border rounded px-3 py-2 mb-4 text-sm"
-            placeholder="Nhập URL video (ví dụ: https://example.com/video.mp4)"
-            value={videoUrlModal?.url || ""}
-            onChange={(e) => setVideoUrlModal({ ...videoUrlModal!, url: e.target.value })}
-          />
-          <div className="flex justify-end gap-2">
-            <OutlineButton className="px-3 py-1.5 text-sm" onClick={() => setVideoUrlModal(null)}>
-              Hủy
-            </OutlineButton>
-            <GradientButton className="px-3 py-1.5 text-sm" onClick={handleConfirmVideoUrl}>
-              Xác nhận
-            </GradientButton>
-          </div>
-        </div>
+        {videoUrlModal ? (() => {
+          const { idx, type, url } = videoUrlModal as { idx: number; type: "basic" | "premium" | "super"; url: string };
+          return (
+            <div className="p-6 max-w-md mx-auto bg-white rounded-lg">
+              <h3 className="text-lg font-semibold mb-4">
+                Nhập URL video {type} cho phân đoạn {typeof idx === 'number' ? idx + 1 : ""}
+              </h3>
+              <input
+                type="text"
+                className="w-full border rounded px-3 py-2 mb-4 text-sm"
+                placeholder="Nhập URL video (ví dụ: https://example.com/video.mp4)"
+                value={url || ""}
+                onChange={e =>
+                  setVideoUrlModal(
+                    idx !== undefined && type
+                      ? { idx, type, url: e.target.value }
+                      : null
+                  )
+                }
+              />
+              <div className="flex justify-end gap-2">
+                <OutlineButton className="px-3 py-1.5 text-sm" onClick={() => setVideoUrlModal(null)}>
+                  Hủy
+                </OutlineButton>
+                <GradientButton className="px-3 py-1.5 text-sm" onClick={handleConfirmVideoUrl}>
+                  Xác nhận
+                </GradientButton>
+              </div>
+            </div>
+          );
+        })() : null}
       </Modal>
 
       {/* Modal tạo video Basic */}
-      {basicModalIdx !== null && (
+      {typeof basicModalIdx === 'number' && (
         <VideoBasicModal
           segment={script.segments[basicModalIdx]}
           idx={basicModalIdx}

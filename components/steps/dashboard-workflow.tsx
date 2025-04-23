@@ -9,6 +9,7 @@ import { GradientButton } from "../ui-custom/gradient-button";
 import { OutlineButton } from "../ui-custom/outline-button";
 import { Modal } from "../ui-custom/modal";
 import type { SessionData } from "../video-generator";
+import FinalVideoResult from "./final-video-result";
 
 /**
  * Bảng điều khiển quy trình tạo video: hiển thị và thao tác tất cả các bước trên 1 giao diện.
@@ -26,6 +27,42 @@ export function DashboardWorkflow({
 }) {
   // State quản lý từng phần
   const [sessionData, _setSessionData] = useState(initialSessionData);
+  // State cho video tổng hợp cuối cùng
+  const [finalVideoUrl, setFinalVideoUrl] = useState<string>("");
+  const [showFinalResult, setShowFinalResult] = useState(false);
+
+  // Hàm tạo video tổng hợp từ các phân đoạn
+  async function handleCreateFinalVideo() {
+    setIsLoading(true);
+    setShowFinalResult(false);
+    try {
+      const videoFiles = (sessionData.script.segments || [])
+        .map((seg: any) => seg.video_path)
+        .filter((v: string | undefined) => !!v);
+      if (!videoFiles.length) {
+        alert("Chưa có đủ video phân đoạn!");
+        setIsLoading(false);
+        return;
+      }
+      // Có thể bổ sung chọn nhạc nền nếu muốn
+      const res = await fetch("/api/concat-videos-with-music", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ videoFiles }),
+      });
+      const data = await res.json();
+      if (data.success && data.videoUrl) {
+        setFinalVideoUrl(data.videoUrl);
+        setShowFinalResult(true);
+      } else {
+        alert(data.error || "Lỗi không xác định khi ghép video");
+      }
+    } catch (err: any) {
+      alert(err.message || "Lỗi không xác định khi ghép video");
+    } finally {
+      setIsLoading(false);
+    }
+  }
   const [locked, setLocked] = useState(false);
   const [step, setStep] = useState<"script"|"image"|"voice"|"music"|"video"|"done">("script");
   const [showVideoModeDialog, setShowVideoModeDialog] = useState(false);
@@ -147,25 +184,29 @@ export function DashboardWorkflow({
           <div className="font-bold text-gray-700 mb-1">Thời lượng</div>
           <div className="bg-gray-100 rounded px-3 py-2">{((sessionData as any).duration || (sessionData.script as any).duration || 60) + "s"}</div>
         </div>
-      </div>
+      </div> {/* đóng grid tổng quan */}
       {/* 1. Kịch bản & minh họa */}
       <section>
-        {step === "script" && (
+        {showFinalResult ? (
+          <FinalVideoResult
+            videoUrl={finalVideoUrl}
+            onBack={() => setShowFinalResult(false)}
+          />
+        ) : step === "script" && (
           <>
             <FinalScriptStep
-  sessionData={sessionData}
-  setSessionData={updateSessionData}
-  onNext={() => setStep("image")}
-  onPrevious={() => setStep("script")}
-/>
-            {/* Nút xác nhận kịch bản chỉ enable khi tất cả phân đoạn đã có ảnh */}
+              sessionData={sessionData}
+              setSessionData={updateSessionData}
+              onNext={() => setStep("image")}
+              onPrevious={() => setStep("script")}
+            />
             <button
-              className={`mt-4 px-4 py-2 rounded font-semibold text-white ${sessionData.script.segments.every(seg => seg.image_path || seg.direct_image_url) ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'}`}
-              disabled={!sessionData.script.segments.every(seg => seg.image_path || seg.direct_image_url)}
-              title={sessionData.script.segments.every(seg => seg.image_path || seg.direct_image_url) ? '' : 'Cần tạo hoặc upload ảnh minh họa cho tất cả các phân đoạn để xác nhận kịch bản'}
-              onClick={() => handleConfirmScript(sessionData.script)}
+              className={`mt-4 px-4 py-2 rounded font-semibold text-white ${sessionData.script.segments.every(seg => seg.video_path) ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'}`}
+              disabled={!sessionData.script.segments.every(seg => seg.video_path)}
+              title={sessionData.script.segments.every(seg => seg.video_path) ? '' : 'Cần tạo video cho tất cả các phân đoạn để tạo video kết quả cuối cùng'}
+              onClick={handleCreateFinalVideo}
             >
-              Xác nhận kịch bản
+              Tạo video kết quả cuối cùng
             </button>
           </>
         )}
@@ -361,6 +402,7 @@ export function DashboardWorkflow({
 
       {/* 5. Hoàn thành */}
       {locked && sessionData.script.segments.every(seg => seg.direct_image_url || seg.image_path)
+      /* ensure all sections/fragments above are correctly closed before this line */
         && sessionData.script.segments.every(seg => seg.direct_voice_url)
         && sessionData.script.video_path && (
         <div className="text-green-700 font-bold text-xl text-center py-10">
