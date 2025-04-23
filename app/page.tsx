@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { VideoGenerator } from "@/components/video-generator";
 import { DecorativeBackground } from "@/components/ui-custom/decorative-background";
 import { IntroScreen } from "@/components/intro-screen";
@@ -10,11 +10,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-
 export default function Home() {
   const [showIntro, setShowIntro] = useState(true);
   const [hasSeenIntro, setHasSeenIntro] = useState(false);
-
+  const videoGeneratorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const hasSeenIntro = localStorage.getItem("hasSeenIntro");
@@ -44,19 +43,52 @@ export default function Home() {
     toast.info("Đã quay lại trạng thái ban đầu!");
   };
 
+  const handleCreateVideo = () => {
+    toast.info("Hãy nhập thông tin để tạo video!");
+    // Focus vào phần nhập liệu trong VideoGenerator (nếu có)
+    if (videoGeneratorRef.current) {
+      videoGeneratorRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  // Tạo particles ngẫu nhiên
+  const particles = Array.from({ length: 20 }).map((_, i) => ({
+    id: i,
+    size: Math.random() * 10 + 5,
+    left: `${Math.random() * 100}%`,
+    animationDelay: `${Math.random() * 5}s`,
+  }));
+
   return (
-    <main className="min-h-screen pb-20">
-      <DecorativeBackground />
+    <main className="min-h-screen pb-20 relative overflow-hidden">
+      {/* Particle Background */}
+      <div className="particle-background">
+        {particles.map((particle) => (
+          <div
+            key={particle.id}
+            className="particle"
+            style={{
+              width: particle.size,
+              height: particle.size,
+              left: particle.left,
+              bottom: "-10%",
+              animationDelay: particle.animationDelay,
+            }}
+          />
+        ))}
+        <DecorativeBackground />
+      </div>
+
       <ToastContainer position="top-right" autoClose={3000} />
 
       <AnimatePresence mode="wait">
         {showIntro ? (
           <motion.div
             key="intro"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
             className="relative z-10"
           >
             <IntroScreen onStart={handleStartApp} />
@@ -64,61 +96,59 @@ export default function Home() {
         ) : (
           <motion.div
             key="app"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
             className="relative z-10"
           >
-            <div className="container mx-auto py-8 md:py-12 px-4">
+            <div className="container mx-auto py-12 md:py-16 px-4">
               <motion.div
-                className="text-center mb-8 md:mb-12"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
+                className="text-center mb-12 md:mb-16"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 transition={{ duration: 0.6, staggerChildren: 0.2 }}
               >
                 <motion.h1
-                  className="text-3xl md:text-5xl font-bold mb-3 md:mb-4 gradient-heading responsive-text-xl"
-                  data-tip="Tạo video chuyên nghiệp chỉ trong vài phút!"
-                  initial={{ opacity: 0, y: -10 }}
+                  className="text-4xl md:text-6xl font-bold mb-4 md:mb-6 gradient-heading responsive-text-xl"
+                  initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4 }}
+                  transition={{ duration: 0.5 }}
+                  aria-label="Tạo Video Chuyên Nghiệp Cùng AI"
                 >
                   Tạo Video Chuyên Nghiệp Cùng AI
                 </motion.h1>
                 <motion.p
-                  className="text-base md:text-lg text-gray-600 max-w-2xl mx-auto responsive-text-base"
-                  initial={{ opacity: 0, y: -10 }}
+                  className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto responsive-text-base leading-relaxed"
+                  initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.2 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
                 >
-                  Sản xuất mọi loại hình video chỉ trong vài phút với công nghệ AI tiên tiến
+                  Sản xuất mọi loại hình video chỉ trong vài phút với công nghệ AI tiên tiến.
+                  Dễ dàng, nhanh chóng, hiệu quả!
                 </motion.p>
                 <motion.div
-                  initial={{ opacity: 0, y: -10 }}
+                  initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.4 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
                 >
                   <GradientButton
-                    className="mt-4"
+                    className="mt-6 px-6 py-3 text-lg pulse-button shadow-lg hover:shadow-xl"
                     data-tip="Bắt đầu tạo video ngay bây giờ!"
-                    onClick={() => toast.info("Hãy nhập thông tin để tạo video!")}
+                    onClick={handleCreateVideo}
+                    aria-label="Tạo Video Ngay"
                   >
                     Tạo Video Ngay
                   </GradientButton>
                 </motion.div>
               </motion.div>
 
-              <div className="flex justify-between mb-6">
-                <OutlineButton onClick={handleShowIntro}>Xem lại hướng dẫn</OutlineButton>
-                <OutlineButton onClick={handleReset}>Reset trạng thái</OutlineButton>
+              <div ref={videoGeneratorRef}>
+                <VideoGenerator />
               </div>
-
-              <VideoGenerator />
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-      
     </main>
   );
 }

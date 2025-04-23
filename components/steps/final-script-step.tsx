@@ -41,6 +41,7 @@ export default function FinalScriptStep({ sessionData, setSessionData, onNext, o
   } | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [creatingVideo, setCreatingVideo] = useState<{ idx: number; type: string } | null>(null);
+  const [uploadingImageIdx, setUploadingImageIdx] = useState<number | null>(null);
   const platform = (sessionData as any).platform || (sessionData.script as any).platform || "TikTok";
   const duration = (sessionData as any).duration || (sessionData.script as any).duration || 60;
 
@@ -157,78 +158,34 @@ export default function FinalScriptStep({ sessionData, setSessionData, onNext, o
     handleChange(newScript);
   };
 
+  const handleImageUpload = (idx: number, file: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Vui lòng chọn một file ảnh!");
+      return;
+    }
+
+    setUploadingImageIdx(idx);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const imageUrl = reader.result as string;
+      const newScript = { ...script };
+      newScript.segments = [...newScript.segments];
+      newScript.segments[idx] = { ...newScript.segments[idx], direct_image_url: imageUrl };
+      setScript(newScript);
+      setSessionData({ ...sessionData, script: newScript });
+      setUploadingImageIdx(null);
+      toast.success(`Đã upload ảnh cho phân đoạn ${idx + 1}!`);
+    };
+    reader.onerror = () => {
+      setUploadingImageIdx(null);
+      toast.error("Lỗi khi upload ảnh!");
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Nút quay lại */}
-      <div className="flex items-center gap-2 text-gray-600 cursor-pointer" onClick={onPrevious}>
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-        </svg>
-        <span className="text-sm">Quay lại nhập yêu cầu của bạn đầu</span>
-      </div>
-
-      {/* Tiêu đề chính */}
-      <h1 className="text-2xl font-bold text-green-600">Bằng điều khiển tạo video</h1>
-
-      {/* Thông tin video */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Tiêu đề</label>
-          {!locked ? (
-            editTitle ? (
-              <input
-                className="border rounded px-2 py-1 bg-white w-full text-sm"
-                value={localTitle}
-                autoFocus
-                onChange={(e) => setLocalTitle(e.target.value)}
-                onBlur={() => {
-                  setScript({ ...script, title: localTitle });
-                  setEditTitle(false);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    setScript({ ...script, title: localTitle });
-                    setEditTitle(false);
-                  }
-                }}
-              />
-            ) : (
-              <div
-                className="cursor-pointer px-2 py-1 rounded hover:bg-gray-100 text-sm"
-                onClick={() => setEditTitle(true)}
-              >
-                {script.title || <span className="text-gray-400">(Chưa có tiêu đề)</span>}
-              </div>
-            )
-          ) : (
-            <input
-              className="border rounded px-2 py-1 bg-gray-100 cursor-not-allowed w-full text-sm"
-              value={script.title || ""}
-              disabled
-              readOnly
-            />
-          )}
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Nền tảng</label>
-          <input
-            className="border rounded px-2 py-1 bg-gray-100 cursor-not-allowed w-full text-sm"
-            value={platform}
-            disabled
-            readOnly
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Thời lượng</label>
-          <input
-            className="border rounded px-2 py-1 bg-gray-100 cursor-not-allowed w-full text-sm"
-            value={duration + "s"}
-            disabled
-            readOnly
-          />
-        </div>
-      </div>
-
       {/* Tiêu đề bước */}
       <h2 className="text-xl font-bold">Bước xác nhận kịch bản trước khi sản xuất</h2>
 
@@ -241,7 +198,7 @@ export default function FinalScriptStep({ sessionData, setSessionData, onNext, o
               data-tip="Tạo ảnh minh họa tự động dựa trên mô tả hoặc nội dung kịch bản"
               disabled={batchLoading}
               onClick={handleBatchGenerateImages}
-              className="px-3 py-1.5 text-sm"
+              className="px-3 py-1.5 text-sm shadow-sm hover:shadow-md"
             >
               {batchLoading ? (
                 <span className="flex items-center">
@@ -258,8 +215,8 @@ export default function FinalScriptStep({ sessionData, setSessionData, onNext, o
           </div>
         )}
 
-      {/* Danh sách phân đoạn */}
-      <div className="space-y-4">
+      {/* Danh sách phân đoạn - Lưới 2 cột */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {script.segments.map((seg, idx) => (
           <details
             key={idx}
@@ -271,12 +228,12 @@ export default function FinalScriptStep({ sessionData, setSessionData, onNext, o
             </summary>
             <div className="mt-4 space-y-4">
               {/* Ảnh minh họa */}
-              <div>
+              <div className="relative">
                 {seg.image_path || seg.direct_image_url ? (
                   <img
                     src={seg.direct_image_url || seg.image_path}
                     alt={`Ảnh minh họa phân đoạn ${idx + 1}`}
-                    className="w-full max-h-48 object-contain rounded-lg cursor-pointer transition-transform hover:scale-105"
+                    className="w-full h-48 object-cover rounded-lg cursor-pointer transition-transform hover:scale-105"
                     onClick={() => setPreviewImage(seg.direct_image_url || seg.image_path || null)}
                   />
                 ) : (
@@ -284,6 +241,67 @@ export default function FinalScriptStep({ sessionData, setSessionData, onNext, o
                     Chưa có ảnh minh họa
                   </div>
                 )}
+                {/* Nếu locked, KHÔNG render nút ở đây (phía trên ảnh), chỉ render ở dưới cùng phân đoạn */}
+                {!locked ? (
+                  <label
+                    className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg cursor-pointer text-sm text-gray-700"
+                    data-tip="Upload ảnh minh họa từ thiết bị"
+                  >
+                    {uploadingImageIdx === idx ? (
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                        />
+                      </svg>
+                    )}
+                    <span>Upload ảnh</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageUpload(idx, file);
+                      }}
+                    />
+                  </label>
+                ) : null}
+                  <label
+                    className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg cursor-pointer text-sm text-gray-700"
+                    data-tip="Upload ảnh minh họa từ thiết bị"
+                  >
+                    {uploadingImageIdx === idx ? (
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                        />
+                      </svg>
+                    )}
+                    <span>Upload ảnh</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageUpload(idx, file);
+                      }}
+                    />
+                  </label>
               </div>
 
               {/* Lời thoại */}
@@ -386,7 +404,7 @@ export default function FinalScriptStep({ sessionData, setSessionData, onNext, o
               {videoResults[idx]?.length > 0 && (
                 <div className="space-y-2">
                   <span className="font-semibold text-sm">Video đã tạo:</span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     {videoResults[idx].map((video, vIdx) => (
                       <div key={vIdx} className="relative">
                         <video
@@ -397,10 +415,10 @@ export default function FinalScriptStep({ sessionData, setSessionData, onNext, o
                         <span
                           className={`absolute top-2 left-2 px-2 py-1 text-xs font-semibold text-white rounded ${
                             video.type === "basic"
-                              ? "bg-blue-500"
+                              ? "bg-amber-600"
                               : video.type === "premium"
-                              ? "bg-purple-500"
-                              : "bg-green-500"
+                              ? "bg-gray-500"
+                              : "bg-yellow-500"
                           }`}
                         >
                           {video.type === "basic"
@@ -425,74 +443,77 @@ export default function FinalScriptStep({ sessionData, setSessionData, onNext, o
                 </div>
               )}
 
-              {/* Nút tạo video */}
-              {(seg.image_path || seg.direct_image_url) && (
-                <div className="space-y-2 mt-4">
-                  <GradientButton
-                    className="w-full bg-gradient-to-r from-blue-400 to-blue-600 px-3 py-1.5 text-sm"
-                    disabled={creatingVideo?.idx === idx}
-                    data-tip="Tạo video đơn giản, nhanh chóng từ ảnh và kịch bản"
-                    onClick={() => handleCreateVideo(seg, idx, "basic")}
-                  >
-                    Tạo video BASIC
-                  </GradientButton>
-                  <GradientButton
-                    className="w-full bg-gradient-to-r from-purple-400 to-purple-600 px-3 py-1.5 text-sm"
-                    disabled={creatingVideo?.idx === idx}
-                    data-tip="Tạo video chất lượng cao với chuyển động mượt mà"
-                    onClick={() => handleCreateVideo(seg, idx, "premium")}
-                  >
-                    Tạo video PREMIUM
-                  </GradientButton>
-                  <GradientButton
-                    className="w-full bg-gradient-to-r from-green-400 to-green-600 px-3 py-1.5 text-sm"
-                    disabled={creatingVideo?.idx === idx}
-                    data-tip="Tạo video tối ưu với hiệu ứng chuyên nghiệp"
-                    onClick={() => handleCreateVideo(seg, idx, "super")}
-                  >
-                    Tạo video SUPER QUALITY
-                  </GradientButton>
-                </div>
-              )}
+              {/* Khu vực nút tạo video và nút thao tác */}
+              <div className="space-y-2 mt-4">
+                {/* Nút tạo video - Hàng ngang */}
+                {(seg.image_path || seg.direct_image_url) && locked && (
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <GradientButton
+                      className="bg-gradient-to-r from-gray-300 to-gray-500 px-2 py-1 text-sm text-gray-900 font-semibold shadow-sm hover:shadow-md transition-shadow"
+                      disabled={creatingVideo?.idx === idx}
+                      data-tip="Tạo video đơn giản, nhanh chóng từ ảnh và kịch bản"
+                      onClick={() => handleCreateVideo(seg, idx, "basic")}
+                    >
+                      Tạo BASIC
+                    </GradientButton>
+                    <GradientButton
+                      className="bg-gradient-to-r from-[#b87333] to-[#ad7e4c] px-2 py-1 text-sm text-white font-semibold shadow-sm hover:shadow-md transition-shadow"
+                      disabled={creatingVideo?.idx === idx}
+                      data-tip="Tạo video chất lượng cao với chuyển động mượt mà"
+                      onClick={() => handleCreateVideo(seg, idx, "premium")}
+                    >
+                      Tạo PREMIUM
+                    </GradientButton>
+                    <GradientButton
+                      className="bg-gradient-to-r from-[#ffe066] to-[#f9d423] px-2 py-1 text-sm text-yellow-900 font-semibold shadow-sm hover:shadow-md transition-shadow"
+                      disabled={creatingVideo?.idx === idx}
+                      data-tip="Tạo video tối ưu với hiệu ứng chuyên nghiệp"
+                      onClick={() => handleCreateVideo(seg, idx, "super")}
+                    >
+                      Tạo SUPER
+                    </GradientButton>
+                  </div>
+                )}
 
-              {/* Nút thao tác */}
-              {!locked && (
-                <div className="flex justify-end gap-2 mt-4">
-                  {script.segments.length > 1 && (
-                    <OutlineButton
-                      className="px-3 py-1.5 text-sm bg-red-50 text-red-700 hover:bg-red-100"
-                      data-tip="Xóa phân đoạn này"
-                      onClick={() => {
-                        const newScript = { ...script };
-                        newScript.segments = script.segments.filter((_, i) => i !== idx);
-                        handleChange(newScript);
-                        setVideoResults((prev) => prev.filter((_, i) => i !== idx));
-                        toast.info(`Đã xóa phân đoạn ${idx + 1}`);
-                      }}
-                    >
-                      Xóa
-                    </OutlineButton>
-                  )}
-                  {idx === script.segments.length - 1 && (
-                    <OutlineButton
-                      className="px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100"
-                      data-tip="Thêm phân đoạn mới"
-                      onClick={() => {
-                        const newScript = { ...script };
-                        newScript.segments = [
-                          ...script.segments,
-                          { script: "", image_description: "" },
-                        ];
-                        handleChange(newScript);
-                        setVideoResults((prev) => [...prev, []]);
-                        toast.info("Đã thêm phân đoạn mới");
-                      }}
-                    >
-                      Thêm
-                    </OutlineButton>
-                  )}
-                </div>
-              )}
+                {/* Nút thao tác - Xóa và Thêm */}
+                {!locked && (
+                  <div className="flex justify-center gap-2">
+                    {script.segments.length > 1 && (
+                      <OutlineButton
+                        className="px-2 py-1 text-sm bg-red-500 text-white hover:bg-red-600"
+                        data-tip="Xóa phân đoạn này"
+                        onClick={() => {
+                          const newScript = { ...script };
+                          newScript.segments = script.segments.filter((_, i) => i !== idx);
+                          handleChange(newScript);
+                          setVideoResults((prev) => prev.filter((_, i) => i !== idx));
+                          toast.info(`Đã xóa phân đoạn ${idx + 1}`);
+                        }}
+                      >
+                        Xóa
+                      </OutlineButton>
+                    )}
+                    {idx === script.segments.length - 1 && (
+                      <OutlineButton
+                        className="px-2 py-1 text-sm bg-green-50 text-green-700 hover:bg-green-200"
+                        data-tip="Thêm phân đoạn mới"
+                        onClick={() => {
+                          const newScript = { ...script };
+                          newScript.segments = [
+                            ...script.segments,
+                            { script: "", image_description: "" },
+                          ];
+                          handleChange(newScript);
+                          setVideoResults((prev) => [...prev, []]);
+                          toast.info("Đã thêm phân đoạn mới");
+                        }}
+                      >
+                        Thêm
+                      </OutlineButton>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </details>
         ))}
@@ -546,7 +567,7 @@ export default function FinalScriptStep({ sessionData, setSessionData, onNext, o
       )}
 
       {!locked && (
-        <GradientButton onClick={handleConfirm} className="mt-6 px-3 py-1.5 text-sm">
+        <GradientButton onClick={handleConfirm} className="mt-6 px-3 py-1.5 text-sm shadow-sm hover:shadow-md">
           Xác nhận & khóa kịch bản
         </GradientButton>
       )}

@@ -6,60 +6,43 @@
   :root {
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
-
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-
     --primary: 160 84% 39%;
     --primary-foreground: 355.7 100% 97.3%;
-
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
-
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
-
     --accent: 160 84% 96%;
     --accent-foreground: 160 84% 39%;
-
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
     --ring: 160 84% 39%;
-
     --radius: 1rem;
   }
 
   .dark {
     --background: 20 14.3% 4.1%;
     --foreground: 0 0% 95%;
-
     --card: 24 9.8% 10%;
     --card-foreground: 0 0% 95%;
-
     --popover: 0 0% 9%;
     --popover-foreground: 0 0% 95%;
-
     --primary: 160 84% 39%;
     --primary-foreground: 144.9 80.4% 10%;
-
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
-
     --muted: 0 0% 15%;
     --muted-foreground: 240 5% 64.9%;
-
     --accent: 12 6.5% 15.1%;
     --accent-foreground: 0 0% 98%;
-
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 85.7% 97.3%;
-
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
     --ring: 160 84% 39%;
@@ -77,8 +60,12 @@
 
   body {
     @apply bg-background text-foreground;
-    background-image: radial-gradient(at 100% 0%, hsla(160, 84%, 95%, 0.4) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, hsla(160, 84%, 95%, 0.4) 0px, transparent 50%);
+    background-image: radial-gradient(
+      at 100% 0%,
+      hsla(160, 84%, 95%, 0.2) 0px,
+      transparent 50%
+    ),
+    radial-gradient(at 0% 100%, hsla(160, 84%, 95%, 0.2) 0px, transparent 50%);
     background-attachment: fixed;
   }
 
@@ -103,25 +90,32 @@
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025), inset 0 0 0 1px
-    rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05),
+    0 4px 6px -2px rgba(0, 0, 0, 0.025),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
   transition: all 0.3s ease;
 }
 
 .glass-card:hover {
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.01), inset 0 0 0 1px
-    rgba(255, 255, 255, 0.2);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05),
+    0 10px 10px -5px rgba(0, 0, 0, 0.01),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 
 /* Gradient Heading */
 .gradient-heading {
-  font-weight: 700;
-  background: linear-gradient(135deg, hsl(160, 84%, 39%) 0%, hsl(174, 84%, 39%) 100%);
+  font-weight: 800;
+  background: linear-gradient(
+    135deg,
+    hsl(160, 84%, 39%) 0%,
+    hsl(174, 84%, 50%) 100%
+  ); /* Tăng độ sáng để cải thiện độ tương phản */
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-fill-color: transparent;
+  /* text-fill-color: transparent; */ /* Không chuẩn, chỉ giữ -webkit-text-fill-color để tránh cảnh báo IDE */
   letter-spacing: -0.02em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Thêm bóng để dễ đọc hơn */
 }
 
 /* Animations */
@@ -144,7 +138,7 @@
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
@@ -153,7 +147,57 @@
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.5s ease-out forwards;
+  animation: fadeIn 0.8s ease-out forwards;
+}
+
+/* Pulse Animation for Primary Button */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 200, 150, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 20px rgba(0, 200, 150, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 200, 150, 0);
+  }
+}
+
+.pulse-button {
+  animation: pulse 2s infinite;
+}
+
+/* Particle Background */
+.particle-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(0, 200, 150, 0.3);
+  animation: particleFloat 10s infinite ease-in-out;
+}
+
+@keyframes particleFloat {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateY(-50vh) scale(1.5);
+    opacity: 0.2;
+  }
+  100% {
+    transform: translateY(-100vh) scale(1);
+    opacity: 0;
+  }
 }
 
 /* Step Indicator */
@@ -297,12 +341,13 @@
 
 .card-hover:hover {
   transform: translateY(-5px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 /* Gradient Button */
 .btn-gradient {
-  background: linear-gradient(135deg, hsl(160, 84%, 39%) 0%, hsl(174, 84%, 39%) 100%);
+  background: linear-gradient(135deg, hsl(160, 84%, 39%) 0%, hsl(174, 84%, 50%) 100%);
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
@@ -315,7 +360,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, hsl(160, 84%, 35%) 0%, hsl(174, 84%, 35%) 100%);
+  background: linear-gradient(135deg, hsl(160, 84%, 35%) 0%, hsl(174, 84%, 45%) 100%);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -330,7 +375,7 @@
 }
 
 .btn-gradient:hover {
-  box-shadow: 0 4px 14px 0 rgba(0, 200, 150, 0.39);
+  box-shadow: 0 4px 14px 0 rgba(0, 200, 150, 0.5);
 }
 
 /* Outline Button */
@@ -369,7 +414,8 @@
   position: relative;
   overflow: hidden;
   border-radius: 1rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .image-container img {
@@ -398,13 +444,15 @@
 /* Neumorphic Elements */
 .neumorphic {
   background: #f0f4f8;
-  box-shadow: 8px 8px 16px rgba(174, 174, 192, 0.4), -8px -8px 16px rgba(255, 255, 255, 0.8);
+  box-shadow: 8px 8px 16px rgba(174, 174, 192, 0.4),
+    -8px -8px 16px rgba(255, 255, 255, 0.8);
   border-radius: 1rem;
 }
 
 .neumorphic-inset {
   background: #f0f4f8;
-  box-shadow: inset 8px 8px 16px rgba(174, 174, 192, 0.4), inset -8px -8px 16px rgba(255, 255, 255, 0.8);
+  box-shadow: inset 8px 8px 16px rgba(174, 174, 192, 0.4),
+    inset -8px -8px 16px rgba(255, 255, 255, 0.8);
   border-radius: 1rem;
 }
 
@@ -420,19 +468,21 @@
 /* Responsive Typography */
 @media (max-width: 640px) {
   .responsive-text-xl {
-    font-size: 1.5rem;
+    font-size: 1.75rem; /* Giảm kích thước tiêu đề trên mobile */
+    line-height: 2.25rem;
   }
 
   .responsive-text-lg {
-    font-size: 1.25rem;
+    font-size: 1.125rem;
   }
 
   .responsive-text-base {
-    font-size: 1rem;
+    font-size: 0.875rem;
+    line-height: 1.5rem; /* Tăng khoảng cách dòng để dễ đọc */
   }
 
   .responsive-text-sm {
-    font-size: 0.875rem;
+    font-size: 0.75rem;
   }
 }
 
@@ -441,7 +491,11 @@
   position: absolute;
   width: 200px;
   height: 200px;
-  background-image: radial-gradient(circle, rgba(0, 200, 150, 0.2) 1px, transparent 1px);
+  background-image: radial-gradient(
+    circle,
+    rgba(0, 200, 150, 0.2) 1px,
+    transparent 1px
+  );
   background-size: 20px 20px;
   z-index: -1;
   opacity: 0.5;
@@ -450,7 +504,11 @@
 .decorative-circle {
   position: absolute;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(0, 200, 150, 0.1) 0%, rgba(0, 200, 150, 0.05) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(0, 200, 150, 0.1) 0%,
+    rgba(0, 200, 150, 0.05) 100%
+  );
   z-index: -1;
 }
 
@@ -483,7 +541,8 @@
 }
 
 .custom-accordion-item:hover {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .custom-accordion-trigger {
@@ -524,4 +583,3 @@
   background-color: white;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
-
