@@ -2,11 +2,17 @@ import { NextResponse } from 'next/server';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
-export async function GET(request: Request, context: { params: { filename: string } }) {
+export async function GET(request: Request, { params }: { params: { filename: string } }) {
   try {
-    const { filename } = context.params;
+    const { filename } = params;
+    // Validate filename - only allow .mp3 or .wav, no path traversal
+    if (!filename.match(/^audio-[^/]+\.(mp3|wav)$/)) {
+      return new NextResponse(JSON.stringify({ error: 'Invalid filename' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
     const filePath = join(tmpdir(), filename);
-
     const fs = await import('fs/promises');
     let fileBuffer: Buffer;
     try {
@@ -21,7 +27,7 @@ export async function GET(request: Request, context: { params: { filename: strin
     return new NextResponse(fileBuffer, {
       status: 200,
       headers: {
-        'Content-Type': 'audio/mpeg',
+        'Content-Type': filename.endsWith('.mp3') ? 'audio/mpeg' : 'audio/wav',
         'Content-Length': fileBuffer.length.toString(),
       },
     });
