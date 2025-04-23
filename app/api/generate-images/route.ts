@@ -33,6 +33,16 @@ export async function POST(request: Request) {
   const index = parseInt(formData.get("index") as string, 10);
   const prompt = formData.get("prompt") as string;
   const file = formData.get("file") as File | null;
+const platform = (formData.get("platform") as string)?.toLowerCase() || "tiktok";
+let resizeWidth = 512, resizeHeight = 512;
+if (platform === "tiktok") {
+  resizeWidth = 720; resizeHeight = 1280;
+} else if (platform === "youtube") {
+  resizeWidth = 1280; resizeHeight = 720;
+} else if (platform === "facebook") {
+  resizeWidth = 1080; resizeHeight = 1080;
+}
+
 
   if (!apiKey && !file) {
     return NextResponse.json(
@@ -54,8 +64,8 @@ export async function POST(request: Request) {
       try {
         let buffer: Buffer;
         const fileName = `image-${Date.now()}-${index}.png`;
-        const filePath = join(tmpdir(), fileName);
-        const imageUrl = `/api/temp-images/${fileName}`;
+        const filePath = join(process.cwd(), 'public', 'generated', fileName);
+        const imageUrl = `/generated/${fileName}`;
 
         if (file) {
   // Xử lý upload ảnh
@@ -71,7 +81,7 @@ export async function POST(request: Request) {
     const arrayBuffer = await file.arrayBuffer();
     buffer = Buffer.from(arrayBuffer);
     buffer = await sharp(buffer)
-      .resize(512, 512, { fit: "fill" })
+      .resize(resizeWidth, resizeHeight, { fit: "fill" })
       .png()
       .toBuffer();
 
@@ -82,6 +92,7 @@ export async function POST(request: Request) {
         type: "image",
         index,
         direct_image_url: imageUrl,
+        filename: fileName,
       }) + "\n"
     );
     controller.close();

@@ -31,7 +31,7 @@ export default function ImageGenerator({ sessionData, setSessionData, setIsLoadi
 
   const handleImageChange = (idx: number, url: string) => {
     const newSegments = sessionData.script.segments.map((seg, i) =>
-      i === idx ? { ...seg, image_path: url } : seg
+      i === idx ? { ...seg, direct_image_url: url.replace('/generated-images/', '/generated/'), image_path: url.replace('/generated-images/', '/generated/') } : seg
     );
     setSessionData({ ...sessionData, script: { ...sessionData.script, segments: newSegments } });
   };
@@ -117,9 +117,9 @@ export default function ImageGenerator({ sessionData, setSessionData, setIsLoadi
             {locked ? (
               <>
                 <div className="relative w-full h-40 mb-1">
-                  {seg.image_path ? (
+                  {seg.direct_image_url || seg.image_path ? (
                     <img
-                      src={seg.image_path}
+                      src={seg.direct_image_url || seg.image_path}
                       alt={`Ảnh minh họa ${idx + 1}`}
                       className="w-full h-40 object-cover rounded"
                     />
@@ -130,11 +130,11 @@ export default function ImageGenerator({ sessionData, setSessionData, setIsLoadi
                   )}
                 </div>
               </>
-            ) : seg.image_path ? (
+            ) : seg.direct_image_url || seg.image_path ? (
               <>
                 <div className="relative w-full h-40 mb-1">
                   <img
-                    src={seg.image_path}
+                    src={seg.direct_image_url || seg.image_path}
                     alt={`Ảnh minh họa ${idx + 1}`}
                     className="w-full h-40 object-cover rounded cursor-pointer hover:opacity-80 transition"
                     onClick={async () => {
@@ -206,7 +206,9 @@ export default function ImageGenerator({ sessionData, setSessionData, setIsLoadi
                           const formData = new FormData();
                           formData.append("index", idx.toString());
                           formData.append("file", file);
-                          const response = await fetch("/api/generate-images", {
+                          const platform = (sessionData as any).platform || (sessionData.script as any).platform || 'tiktok';
+formData.append('platform', platform);
+const response = await fetch("/api/generate-images", {
                             method: "POST",
                             body: formData,
                           });
