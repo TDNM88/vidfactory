@@ -7,17 +7,11 @@ import { AnimatePresence, motion } from "framer-motion";
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6;
 
+import type { Segment } from "./steps/image-generator";
+
 export type Script = {
   title: string;
-  segments: {
-    script: string;
-    image_description: string;
-    image_path?: string;
-    audio_path?: string;
-    direct_image_url?: string;
-    direct_voice_url?: string;
-    voice_sample_path?: string;
-  }[];
+  segments: Segment[];
   video_path?: string;
   thumbnail_path?: string;
 };

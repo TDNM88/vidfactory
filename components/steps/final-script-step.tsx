@@ -5,6 +5,7 @@ import VideoBasicModal from "./VideoBasicModal";
 import { OutlineButton } from "../ui-custom/outline-button";
 import { GradientButton } from "../ui-custom/gradient-button";
 import type { SessionData } from "../video-generator";
+import type { Segment } from "./image-generator";
 
 type Props = {
   sessionData: SessionData;
@@ -19,6 +20,59 @@ type VideoResult = {
 };
 
 export default function FinalScriptStep({ sessionData, setSessionData, onNext, onPrevious }: Props) {
+  // --- State cho modal tạo video tổng hợp ---
+  const [showFinalModal, setShowFinalModal] = useState(false);
+  const [musicList, setMusicList] = useState<string[]>([]);
+  const [musicSelected, setMusicSelected] = useState("");
+  const [isConcatting, setIsConcatting] = useState(false);
+  const [finalVideoUrl, setFinalVideoUrl] = useState<string>("");
+  const [concatError, setConcatError] = useState<string>("");
+
+  useEffect(() => {
+    // Lấy danh sách nhạc nền từ public/music
+    // Không có API list, hardcode tạm
+    setMusicList(["/music/Music 1.mp3", "/music/Music 2.mp3"]);
+  }, []);
+
+  const handleConcatVideos = async () => {
+    setIsConcatting(true);
+    setConcatError("");
+    try {
+      const videoFiles = (script.segments || [])
+        .map((seg: any) => seg.video_path)
+        .filter((v: string) => !!v);
+      if (!videoFiles.length) {
+        setConcatError("Chưa có đủ video phân đoạn!");
+        setIsConcatting(false);
+        return;
+      }
+      if (!musicSelected) {
+        setConcatError("Vui lòng chọn nhạc nền!");
+        setIsConcatting(false);
+        return;
+      }
+      const res = await fetch("/api/concat-videos-with-music", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ videoFiles, musicFile: musicSelected }),
+      });
+      const data = await res.json();
+      if (data.success && data.videoUrl) {
+        setFinalVideoUrl(data.videoUrl);
+        setSessionData({
+          ...sessionData,
+          script: { ...sessionData.script, video_path: data.videoUrl },
+        });
+      } else {
+        setConcatError(data.error || "Lỗi không xác định khi ghép video");
+      }
+    } catch (err: any) {
+      setConcatError(err.message || "Lỗi không xác định khi ghép video");
+    } finally {
+      setIsConcatting(false);
+    }
+  };
+
   const [editTitle, setEditTitle] = useState(false);
   const [localTitle, setLocalTitle] = useState(sessionData.script.title || "");
   const [editScriptIdx, setEditScriptIdx] = useState<number | null>(null);
@@ -29,7 +83,14 @@ export default function FinalScriptStep({ sessionData, setSessionData, onNext, o
   const [batchLoading, setBatchLoading] = useState(false);
   const [batchError, setBatchError] = useState<string | null>(null);
   const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
-  const [script, setScript] = useState(sessionData.script);
+  const coerceSegments = (segments: any[]): Segment[] => segments.map(seg => ({
+  ...seg,
+  video_path: typeof seg.video_path === "string" ? seg.video_path : undefined,
+}));
+const [script, setScript] = useState(() => ({
+  ...sessionData.script,
+  segments: coerceSegments(sessionData.script.segments || [])
+}));
   const [locked, setLocked] = useState(false);
   const [videoResults, setVideoResults] = useState<VideoResult[][]>(
     sessionData.script.segments.map(() => [])
@@ -46,8 +107,11 @@ export default function FinalScriptStep({ sessionData, setSessionData, onNext, o
   const duration = (sessionData as any).duration || (sessionData.script as any).duration || 60;
 
   useEffect(() => {
-    setScript(sessionData.script);
-    setVideoResults(sessionData.script.segments.map(() => []));
+    setScript({
+      ...sessionData.script,
+      segments: coerceSegments(sessionData.script.segments || [])
+    });
+    setVideoResults((sessionData.script.segments || []).map(() => []));
   }, [sessionData.script]);
 
   async function handleBatchGenerateImages() {
@@ -501,7 +565,7 @@ export default function FinalScriptStep({ sessionData, setSessionData, onNext, o
                           const newScript = { ...script };
                           newScript.segments = [
                             ...script.segments,
-                            { script: "", image_description: "" },
+                            { script: "", image_description: "", video_path: "" },
                           ];
                           handleChange(newScript);
                           setVideoResults((prev) => [...prev, []]);
@@ -575,6 +639,63 @@ export default function FinalScriptStep({ sessionData, setSessionData, onNext, o
         <div className="text-green-600 font-bold mt-4">
           Kịch bản đã được xác nhận và khóa chỉnh sửa.
         </div>
+      )}
+      {/* Nút tạo video tổng hợp */}
+      {locked && script.segments.every(seg => seg.video_path) && (
+        <div className="mt-8 flex flex-col items-center">
+          <GradientButton onClick={() => setShowFinalModal(true)} className="px-4 py-2 text-base font-semibold">
+            Tạo video tổng hợp
+          </GradientButton>
+        </div>
+      )}
+      {/* Modal chọn nhạc nền và tạo video tổng hợp */}
+      {showFinalModal && (
+        <Modal open={showFinalModal} onClose={() => setShowFinalModal(false)}>
+          <div className="p-6 max-w-lg mx-auto">
+            <h3 className="text-xl font-bold mb-4">Tạo video tổng hợp với nhạc nền</h3>
+            <div className="mb-4">
+              <label className="block mb-2 font-medium">Chọn nhạc nền:</label>
+              <select
+                className="w-full border rounded-lg px-3 py-2"
+                value={musicSelected}
+                onChange={e => setMusicSelected(e.target.value)}
+                disabled={isConcatting}
+              >
+                <option value="">-- Chọn nhạc nền --</option>
+                {musicList.map(m => (
+                  <option key={m} value={m}>{m.replace("/music/", "")}</option>
+                ))}
+              </select>
+            </div>
+            <GradientButton
+              onClick={handleConcatVideos}
+              disabled={isConcatting || !musicSelected}
+              isLoading={isConcatting}
+              loadingText="Đang ghép video..."
+              className="w-full mb-2"
+            >
+              Xác nhận tạo video tổng hợp
+            </GradientButton>
+            {concatError && <div className="text-red-500 mt-2">{concatError}</div>}
+            {finalVideoUrl && (
+              <div className="mt-6">
+                <h4 className="font-bold text-xl text-primary mb-2 animate-pulse">🎉 Video tổng hợp đã sẵn sàng!</h4>
+                <div className="aspect-video bg-black rounded-xl overflow-hidden shadow-lg mb-2">
+                  <video
+                    src={finalVideoUrl}
+                    controls
+                    className="w-full h-full"
+                  />
+                </div>
+                <GradientButton asChild className="w-full mt-2">
+                  <a href={finalVideoUrl} download>
+                    <span>Tải xuống video tổng hợp</span>
+                  </a>
+                </GradientButton>
+              </div>
+            )}
+          </div>
+        </Modal>
       )}
     </div>
   );

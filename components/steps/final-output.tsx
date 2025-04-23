@@ -17,10 +17,67 @@ type FinalOutputProps = {
   isLoading: boolean
 }
 
+import { useEffect } from "react";
+
 export default function FinalOutput({ onPrevious, sessionData, setSessionData, setIsLoading, isLoading }: FinalOutputProps) {
-  const [thumbnailPrompt, setThumbnailPrompt] = useState("")
-  const [thumbnailPath, setThumbnailPath] = useState(sessionData.script.thumbnail_path || "")
-  const [isDownloaded, setIsDownloaded] = useState(false)
+  const [thumbnailPrompt, setThumbnailPrompt] = useState("");
+  const [thumbnailPath, setThumbnailPath] = useState(sessionData.script.thumbnail_path || "");
+  const [isDownloaded, setIsDownloaded] = useState(false);
+  const [musicList, setMusicList] = useState<string[]>([]);
+  const [musicSelected, setMusicSelected] = useState<string>("");
+  const [isConcatting, setIsConcatting] = useState(false);
+  const [finalVideoUrl, setFinalVideoUrl] = useState<string>("");
+  const [concatError, setConcatError] = useState<string>("");
+
+  useEffect(() => {
+    // Lấy danh sách nhạc nền từ public/music
+    fetch("/music/")
+      .then(async (res) => {
+        // Không có API list, hardcode tạm
+        setMusicList(["/music/Music 1.mp3", "/music/Music 2.mp3"]);
+      });
+  }, []);
+
+  const handleConcatVideos = async () => {
+    setIsConcatting(true);
+    setConcatError("");
+    try {
+      // Lấy danh sách các video phân đoạn từ sessionData.script.segments
+      // Giả định mỗi segment có video_path
+      const videoFiles = (sessionData.script.segments || [])
+        .map((seg: any) => seg.video_path)
+        .filter((v: string) => !!v);
+      if (!videoFiles.length) {
+        setConcatError("Chưa có đủ video phân đoạn!");
+        setIsConcatting(false);
+        return;
+      }
+      if (!musicSelected) {
+        setConcatError("Vui lòng chọn nhạc nền!");
+        setIsConcatting(false);
+        return;
+      }
+      const res = await fetch("/api/concat-videos-with-music", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ videoFiles, musicFile: musicSelected }),
+      });
+      const data = await res.json();
+      if (data.success && data.videoUrl) {
+        setFinalVideoUrl(data.videoUrl);
+        setSessionData({
+          ...sessionData,
+          script: { ...sessionData.script, video_path: data.videoUrl },
+        });
+      } else {
+        setConcatError(data.error || "Lỗi không xác định khi ghép video");
+      }
+    } catch (err: any) {
+      setConcatError(err.message || "Lỗi không xác định khi ghép video");
+    } finally {
+      setIsConcatting(false);
+    }
+  };
 
   const handleGenerateThumbnail = async () => {
     setIsLoading(true)
@@ -78,10 +135,67 @@ export default function FinalOutput({ onPrevious, sessionData, setSessionData, s
           <CheckCircle className="h-6 w-6 mr-2 text-primary" />
           Bước 5: Kết quả
         </h2>
-        <p className="text-gray-600">Video của bạn đã sẵn sàng để tải xuống</p>
+        <p className="text-gray-600">Video của bạn đã sẵn sàng để tải xuống hoặc ghép tổng hợp</p>
       </div>
 
       <div className="space-y-8">
+        {/* Ghép video tổng hợp */}
+        <motion.div
+          className="rounded-xl overflow-hidden glass-card"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="p-4 md:p-6 space-y-4">
+            <h3 className="text-xl font-semibold gradient-heading">Tạo video tổng hợp hoành tráng</h3>
+            <div className="flex flex-col md:flex-row md:items-center gap-4">
+              <div className="flex-1">
+                <label className="block mb-2 font-medium">Chọn nhạc nền:</label>
+                <select
+                  className="w-full border rounded-lg px-3 py-2"
+                  value={musicSelected}
+                  onChange={e => setMusicSelected(e.target.value)}
+                  disabled={isConcatting}
+                >
+                  <option value="">-- Chọn nhạc nền --</option>
+                  {musicList.map(m => (
+                    <option key={m} value={m}>{m.replace("/music/", "")}</option>
+                  ))}
+                </select>
+              </div>
+              <GradientButton
+                onClick={handleConcatVideos}
+                disabled={isConcatting || !musicSelected}
+                isLoading={isConcatting}
+                loadingText="Đang ghép video..."
+                className="min-w-[180px]"
+              >
+                Xác nhận tạo video tổng hợp
+              </GradientButton>
+            </div>
+            {concatError && <div className="text-red-500 mt-2">{concatError}</div>}
+            {finalVideoUrl && (
+              <div className="mt-6">
+                <h4 className="font-bold text-xl text-primary mb-2 animate-pulse">🎉 Video tổng hợp đã sẵn sàng!</h4>
+                <div className="aspect-video bg-black rounded-xl overflow-hidden shadow-lg mb-2">
+                  <video
+                    src={finalVideoUrl}
+                    controls
+                    className="w-full h-full"
+                  />
+                </div>
+                <GradientButton asChild className="w-full mt-2">
+                  <a href={finalVideoUrl} download>
+                    <Download className="mr-2 h-4 w-4" />
+                    <span>Tải xuống video tổng hợp</span>
+                  </a>
+                </GradientButton>
+              </div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Video từng phân đoạn và tải về */}
         <motion.div
           className="rounded-xl overflow-hidden glass-card"
           initial={{ opacity: 0, y: 20 }}

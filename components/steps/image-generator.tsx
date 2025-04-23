@@ -1,6 +1,6 @@
 import type { SessionData } from "../video-generator";
 
-type Segment = {
+export type Segment = {
   script: string;
   image_description: string;
   image_path?: string;
@@ -9,7 +9,7 @@ type Segment = {
   direct_voice_url?: string;
   voice_sample_path?: string;
   video_status?: string;
-  video_path?: string;
+  video_path?: string; // luôn là string hoặc undefined, không bao giờ là unknown
 };
 
 type ImageGeneratorProps = {
@@ -31,14 +31,14 @@ export default function ImageGenerator({ sessionData, setSessionData, setIsLoadi
 
   const handleImageChange = (idx: number, url: string) => {
     const newSegments = sessionData.script.segments.map((seg, i) =>
-      i === idx ? { ...seg, direct_image_url: url.replace('/generated-images/', '/generated/'), image_path: url.replace('/generated-images/', '/generated/') } : seg
+      i === idx ? { ...seg, direct_image_url: url.replace('/generated-images/', '/generated/'), image_path: url.replace('/generated-images/', '/generated/'), video_path: seg.video_path || "" } : seg
     );
     setSessionData({ ...sessionData, script: { ...sessionData.script, segments: newSegments } });
   };
 
   const handleRemoveImage = (idx: number) => {
     const newSegments = sessionData.script.segments.map((seg, i) =>
-      i === idx ? { ...seg, image_path: undefined } : seg
+      i === idx ? { ...seg, image_path: undefined, video_path: undefined } : seg
     );
     setSessionData({ ...sessionData, script: { ...sessionData.script, segments: newSegments } });
   };
@@ -106,7 +106,7 @@ export default function ImageGenerator({ sessionData, setSessionData, setIsLoadi
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {sessionData.script.segments.map((seg: Segment, idx) => (
+       {sessionData.script.segments.map((seg: Segment, idx: number) => (
         <div key={idx} className="rounded-xl shadow bg-white p-4 border border-gray-200 flex flex-col gap-2">
           <div className="font-bold text-primary mb-1">Phân đoạn {idx + 1}</div>
           <div className="mb-2">
