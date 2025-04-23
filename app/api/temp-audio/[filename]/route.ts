@@ -1,27 +1,31 @@
 import { NextResponse } from 'next/server';
-import { createReadStream, statSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
-export async function GET(request: Request, { params }: { params: { filename: string } }) {
+export async function GET(request: Request, context: { params: { filename: string } }) {
   try {
-    const { filename } = params;
+    const { filename } = context.params;
     const filePath = join(tmpdir(), filename);
 
-    const fileStream = createReadStream(filePath);
-    const { size } = statSync(filePath);
-
-    return new NextResponse(fileStream as any, {
+    const fs = await import('fs/promises');
+    let fileBuffer: Buffer;
+    try {
+      fileBuffer = await fs.readFile(filePath);
+    } catch (error: any) {
+      if (error.code === 'ENOENT') {
+        return new NextResponse(null, { status: 404 });
+      }
+      console.error('Error serving audio:', error);
+      return new NextResponse(null, { status: 500 });
+    }
+    return new NextResponse(fileBuffer, {
       status: 200,
       headers: {
-        'Content-Type': 'audio/mpeg', // Changed to audio/mpeg
-        'Content-Length': size.toString(),
+        'Content-Type': 'audio/mpeg',
+        'Content-Length': fileBuffer.length.toString(),
       },
     });
   } catch (error: any) {
-    if (error.code === 'ENOENT') {
-      return new NextResponse(null, { status: 404 });
-    }
     console.error('Error serving audio:', error);
     return new NextResponse(null, { status: 500 });
   }
