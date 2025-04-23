@@ -2,7 +2,11 @@ import { NextResponse } from 'next/server';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
-export async function GET(request: Request, { params }: { params: { filename: string } }) {
+export async function GET(request: Request) {
+  // Extract filename from the URL path
+  const url = new URL(request.url);
+  const paths = url.pathname.split("/");
+  const filename = paths[paths.length - 1];
   try {
     const { filename } = params;
     // Validate filename - only allow .mp3 or .wav, no path traversal
