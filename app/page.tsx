@@ -56,10 +56,10 @@ export default function Home() {
                 transition={{ duration: 0.6 }}
               >
                 <h1 className="text-3xl md:text-5xl font-bold mb-3 md:mb-4 gradient-heading responsive-text-xl">
-                  Tạo Video Mạng Xã Hội
+                  Tạo Video Chuyên Nghiệp Cùng AI
                 </h1>
                 <p className="text-base md:text-lg text-gray-600 max-w-2xl mx-auto responsive-text-base">
-                  Tạo video chuyên nghiệp cho mạng xã hội chỉ trong vài phút với công nghệ AI tiên tiến
+                  Sản xuất mọi loại hình video chỉ trong vài phút với công nghệ AI tiên tiến
                 </p>
               </motion.div>
 
