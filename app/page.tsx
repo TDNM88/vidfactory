@@ -1,14 +1,14 @@
+// pages/index.tsx
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { VideoGenerator } from "@/components/video-generator";
 import { DecorativeBackground } from "@/components/ui-custom/decorative-background";
 import { IntroScreen } from "@/components/intro-screen";
 import { GradientButton } from "@/components/ui-custom/gradient-button";
 import { OutlineButton } from "@/components/ui-custom/outline-button";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-hot-toast";
+import DashboardWorkflow from "@/components/dashboardworkflow";
 
 export default function Home() {
   const [showIntro, setShowIntro] = useState(true);
@@ -28,36 +28,38 @@ export default function Home() {
     localStorage.setItem("hasSeenIntro", "true");
     setHasSeenIntro(true);
     toast.success("Chào mừng bạn đến với ứng dụng tạo video AI!", {
-      position: "top-right",
-      autoClose: 3000,
+      duration: 3000,
     });
   };
 
   const handleShowIntro = () => {
     setShowIntro(true);
-    toast.info("Đang hiển thị màn hình giới thiệu...");
+    toast("Đang hiển thị màn hình giới thiệu...");
   };
 
   const handleReset = () => {
-    // Callback để reset trạng thái trong VideoGenerator
-    toast.info("Đã quay lại trạng thái ban đầu!");
+    toast("Đã quay lại trạng thái ban đầu!");
   };
 
   const handleCreateVideo = () => {
-    toast.info("Hãy nhập thông tin để tạo video!");
-    // Focus vào phần nhập liệu trong VideoGenerator (nếu có)
+    toast("Hãy nhập thông tin để tạo video!");
     if (videoGeneratorRef.current) {
       videoGeneratorRef.current.scrollIntoView({ behavior: "smooth" });
     }
   };
 
-  // Tạo particles ngẫu nhiên
-  const particles = Array.from({ length: 20 }).map((_, i) => ({
-    id: i,
-    size: Math.random() * 10 + 5,
-    left: `${Math.random() * 100}%`,
-    animationDelay: `${Math.random() * 5}s`,
-  }));
+  // Tạo particles ngẫu nhiên chỉ trên client để tránh hydration mismatch
+  const [particles, setParticles] = useState<Array<{ id: number; size: number; left: string; animationDelay: string }>>([]);
+  useEffect(() => {
+    setParticles(
+      Array.from({ length: 20 }).map((_, i) => ({
+        id: i,
+        size: Math.random() * 10 + 5,
+        left: `${Math.random() * 100}%`,
+        animationDelay: `${Math.random() * 5}s`,
+      }))
+    );
+  }, []);
 
   return (
     <main className="min-h-screen pb-20 relative overflow-hidden">
@@ -78,8 +80,6 @@ export default function Home() {
         ))}
         <DecorativeBackground />
       </div>
-
-      <ToastContainer position="top-right" autoClose={3000} />
 
       <AnimatePresence mode="wait">
         {showIntro ? (
@@ -139,12 +139,9 @@ export default function Home() {
                   >
                     Tạo Video Ngay
                   </GradientButton>
+                  <DashboardWorkflow/>
                 </motion.div>
               </motion.div>
-
-              <div ref={videoGeneratorRef}>
-                <VideoGenerator />
-              </div>
             </div>
           </motion.div>
         )}
