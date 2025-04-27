@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 // lib/vidu-api.ts
 import fetch from "node-fetch";
 import sharp from "sharp";
@@ -163,29 +162,6 @@ export async function processImageToPlatformSize(imageBuffer: Buffer, width: num
     .resize(width, height, { fit: "cover" })
     .png()
     .toBuffer();
-=======
-// lib/vidu-api.ts
-import fetch from "node-fetch";
-import sharp from "sharp";
-
-const VIDU_API_URL = "https://api.vidu.com/ent/v2";
-const VIDU_API_KEY = process.env.VIDU_API_KEY;
-
-export interface ViduImg2VideoParams {
-  model: "vidu2.0" | "vidu1.5" | "vidu1.0";
-  images: string[]; // Only 1 image allowed, URL or base64
-  prompt?: string;
-  duration?: number; // 4 or 8
-  seed?: number;
-  resolution?: "360p" | "720p" | "1080p";
-  movement_amplitude?: "auto" | "small" | "medium" | "large";
-  callback_url?: string;
-}
-
-export interface ViduImg2VideoResponse {
-  task_id: string;
-  state: string;
-  model: string;
   images: string[];
   prompt: string;
   duration: number;
@@ -323,10 +299,4 @@ export async function uploadFileToViduPutUrl(putUrl: string, buffer: Buffer, con
 }
 
 // Hàm resize ảnh theo kích thước nền tảng
-export async function processImageToPlatformSize(imageBuffer: Buffer, width: number, height: number): Promise<Buffer> {
-  return sharp(imageBuffer)
-    .resize(width, height, { fit: "cover" })
-    .png()
-    .toBuffer();
->>>>>>> 77553b66f43ef1bdaa00b0bb41b0b98e79093a97
 }
