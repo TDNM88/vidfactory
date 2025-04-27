@@ -1,5 +1,13 @@
 // Định nghĩa kiểu dữ liệu dùng chung cho toàn bộ workflow
 
+// Định nghĩa kiểu dữ liệu request tạo video cơ bản (frontend/backend dùng chung)
+export interface BasicVideoRequest {
+  imageUrl: string;
+  voiceUrl?: string;
+  segmentIdx: number;
+  platform: string;
+}
+
 export interface Segment {
   script: string;
   image_description?: string;
