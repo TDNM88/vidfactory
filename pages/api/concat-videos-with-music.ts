@@ -38,8 +38,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       return res.status(500).json({ success: false, error: `Không tìm thấy ffmpeg binary tại ${ffmpegPath}` });
     }
 
-    // Tạo thư mục lưu video
-    const tempDir = join(process.cwd(), "public", "temp-videos");
+    // Xác thực user
+    const { PrismaClient } = require('@prisma/client');
+    const { verifyToken } = require('../../lib/auth');
+    const prisma = new PrismaClient();
+    const user = await verifyToken(req, prisma);
+    if (!user) return res.status(401).json({ success: false, error: 'Unauthorized' });
+    const userId = String(user.id);
+    // Tạo thư mục lưu video riêng
+    const tempDir = join(require('os').tmpdir(), 'generated-videos', userId);
     await fs.mkdir(tempDir, { recursive: true });
 
     // Validate video files

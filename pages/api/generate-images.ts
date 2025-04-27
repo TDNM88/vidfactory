@@ -3,6 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 import * as fs from "node:fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
+import * as path from "path";
 import sharp from "sharp";
 import formidable from "formidable";
 
@@ -147,10 +148,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    // Get user ID from token
+    const prisma = new PrismaClient();
+    const user = await verifyToken(req, prisma);
+    if (!user) {
+      return res.status(401).json({ success: false, error: "Unauthorized" });
+    }
+    const userId = user.id;
+
     // Prepare file paths
+    const userDir = path.join('/tmp/generated-images', userId);
+    await fs.mkdir(userDir, { recursive: true });
     const fileName = `image-${Date.now()}-${index}.png`;
-    const filePath = join(tmpdir(), fileName);
-    const imageUrl = `/api/temp-images/${fileName}`;
+    const filePath = path.join(userDir, fileName);
+    const imageUrl = `/api/temp-images/${userId}/${fileName}`;
 
     // Build style prompt dynamically
     const stylePrompt = styleSettings

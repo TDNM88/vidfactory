@@ -1,4 +1,0 @@
-file 'D:/tdnm-app/tdnm-app/public/videos/segment_0_basic.mp4'
-file 'D:/tdnm-app/tdnm-app/public/videos/segment_1_basic.mp4'
-file 'D:/tdnm-app/tdnm-app/public/videos/segment_2_basic.mp4'
-file 'D:/tdnm-app/tdnm-app/public/videos/segment_3_basic.mp4'

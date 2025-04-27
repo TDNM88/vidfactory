@@ -18,10 +18,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(403).json({ success: false, error: "Forbidden" });
   }
 
-  const filePath = join(tmpdir(), 'generated-images', userId, filename);
+  const filePath = join(tmpdir(), 'generated-audios', userId, filename);
   try {
     const fileBuffer = await fs.readFile(filePath);
-    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Content-Type", "audio/mpeg");
     res.status(200).send(fileBuffer);
   } catch (error: any) {
     res.status(404).json({ success: false, error: "File not found" });

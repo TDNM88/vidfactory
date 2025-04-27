@@ -1,6 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import path from 'path';
 import fs from 'fs';
+import { PrismaClient } from '@prisma/client';
+import { verifyToken } from '../../lib/auth';
+import { tmpdir } from 'os';
 import { v4 as uuidv4 } from 'uuid';
 import { Client } from '@gradio/client';
 import fetch from 'node-fetch';
@@ -32,8 +35,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     // Phonemize the input text for better Vietnamese pronunciation
     const phonemizedText = phonemizeVietnamese(text);
 
+    // Xác thực user
+    const prisma = new PrismaClient();
+    const user = await verifyToken(req, prisma);
+    if (!user) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+    const userId = String(user.id);
     // Prepare output directory
-    const outputDir = path.join(process.cwd(), 'public', 'voices');
+    const outputDir = path.join(tmpdir(), 'generated-audios', userId);
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
@@ -99,8 +109,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       throw new Error('Failed to create audio file');
     }
 
-    // Return the public URL
-    const voiceUrl = `/voices/${fileName}`;
+    // Return the user-specific URL
+    const voiceUrl = `/api/temp-audios/${userId}/${fileName}`;
     return res.status(200).json({ success: true, voiceUrl });
   } catch (error: any) {
     console.error('Error generating voice:', error);

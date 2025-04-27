@@ -16,7 +16,7 @@ export default function LoginPage() {
     try {
       const res = await axios.post('/api/auth', { username, password });
       localStorage.setItem('token', (res.data as any).token);
-      window.location.href = (res.data as any).user.isAdmin ? '/admin' : '/';
+      window.location.href = (res.data as any).user.isAdmin ? '/admin' : '/dashboard';
     } catch (e: any) {
       setError(e.response?.data?.error || 'Lỗi đăng nhập');
     }
