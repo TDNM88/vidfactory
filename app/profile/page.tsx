@@ -4,6 +4,8 @@ import { useUserStatus } from "@/components/UserStatusContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
 
+import CreditHistory from "./CreditHistory";
+
 export default function ProfilePage() {
   const { user, loading, error, refreshUser } = useUserStatus();
   const router = useRouter();
@@ -46,6 +48,7 @@ export default function ProfilePage() {
         </button>
       </div>
       {error && <div className="mt-4 text-center text-red-500 text-sm">{error}</div>}
+      <CreditHistory />
     </div>
   );
 }

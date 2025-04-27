@@ -15,6 +15,7 @@ interface RequestBody {
   segmentIdx?: string | number;
   styleSettings?: { style: string; character: string; scene: string };
   image_base64?: string;
+  image_description?: string;
 }
 
 // Utility function to generate images with retry logic
@@ -45,6 +46,8 @@ async function generateWithRetry(ai: GoogleGenAI, model: string, prompt: string,
 import { PrismaClient } from '@prisma/client';
 import { verifyToken } from '../../lib/auth';
 
+const prisma = new PrismaClient();
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
@@ -59,12 +62,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let styleSettings: { style: string; character: string; scene: string } | undefined;
     const apiKey = process.env.GEMINI_API_KEY;
 
-    if (!apiKey) {
-      console.error("GEMINI_API_KEY is not configured");
-      return res.status(500).json({ success: false, error: "GEMINI_API_KEY is not configured" });
+    // Require authentication for all user-generated images
+    const user = await verifyToken(req, prisma);
+    if (!user) {
+      return res.status(401).json({ success: false, error: "Unauthorized" });
     }
 
     // Handle JSON or multipart/form-data requests
+    let imageDescription: string | undefined = undefined;
     if (contentType.includes("application/json")) {
       const body: RequestBody = await new Promise((resolve, reject) => {
         let data = "";
@@ -88,6 +93,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
       if (typeof body.image_base64 === "string" && body.image_base64.startsWith("data:image")) {
         file = { base64: body.image_base64 };
+      }
+      if (typeof body.image_description === "string") {
+        imageDescription = body.image_description;
       }
     } else if (contentType.includes("multipart/form-data")) {
       const form = formidable({ multiples: false, maxFileSize: 5 * 1024 * 1024 });
@@ -116,6 +124,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               : formData.fields.styleSettings
           )
         : undefined;
+      if (formData.fields.image_description) {
+        imageDescription = Array.isArray(formData.fields.image_description)
+          ? formData.fields.image_description[0]
+          : formData.fields.image_description;
+      }
       file = formData.files.file;
       const imageBase64 = Array.isArray(formData.fields.image_base64)
         ? formData.fields.image_base64[0]
@@ -134,9 +147,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (typeof index !== "number" || isNaN(index)) {
       return res.status(400).json({ success: false, error: "Invalid segment index" });
     }
-    if (prompt && !styleSettings) {
-      return res.status(400).json({ success: false, error: "Missing styleSettings for AI-generated image" });
-    }
+    // Cho phép tạo ảnh AI mà không cần styleSettings, chỉ cần image_description
+    // if (prompt && !styleSettings) {
+    //   return res.status(400).json({ success: false, error: "Missing styleSettings for AI-generated image" });
+    // }
     if (styleSettings && !validStyles.includes(styleSettings.style)) {
       return res.status(400).json({ success: false, error: `Invalid style: ${styleSettings.style}` });
     }
@@ -148,19 +162,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Prepare file paths
+    const userId = String(user.id);
     const fileName = `image-${Date.now()}-${index}.png`;
-    const filePath = join(tmpdir(), fileName);
-    const imageUrl = `/api/temp-images/${fileName}`;
+    const userDir = join(process.cwd(), 'public', 'generated-images', userId);
+    await fs.mkdir(userDir, { recursive: true });
+    const filePath = join(userDir, fileName);
+    // Secure API URL for access
+    const staticImageUrl = `/generated-images/${userId}/${fileName}`;
 
     // Build style prompt dynamically
-    const stylePrompt = styleSettings
-      ? `
-        Phong cách: ${styleSettings.style}.
-        Nhân vật: ${styleSettings.character || "Không có nhân vật, tập trung vào bối cảnh chi tiết"}.
-        Bối cảnh: ${styleSettings.scene || "Bối cảnh phù hợp với nội dung mô tả, không lặp lại văn bản"}.
-        Chi tiết: Màu sắc sống động, ánh sáng mềm mại, bố cục cân đối, góc quay cận cảnh hoặc trung cảnh.
-      `
-      : "";
+    // Không còn setup stylePrompt cho nhân vật, bối cảnh
+let descriptionPrompt = imageDescription ? `Mô tả ảnh: ${imageDescription}.` : "";
+let stylePrompt = styleSettings && styleSettings.style ? `Phong cách: ${styleSettings.style}.` : "";
 
     // Process request
     let buffer: Buffer;
@@ -187,8 +200,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         await fs.writeFile(filePath, buffer);
         return res.status(200).json({
           success: true,
-          imageUrl,
-          direct_image_url: imageUrl,
+          imageUrl: staticImageUrl,
+          direct_image_url: staticImageUrl,
           image_path: filePath,
           index,
         });
@@ -196,9 +209,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         console.error("Image processing error:", error);
         return res.status(500).json({ success: false, error: "Failed to process uploaded image" });
       }
-    } else if (prompt && apiKey && styleSettings) {
+    } else if (prompt && apiKey) {
       try {
-        const enhancedPrompt = `${prompt}. ${stylePrompt}`;
+        const enhancedPrompt = `${descriptionPrompt} ${stylePrompt}`.trim();
         const ai = new GoogleGenAI({ apiKey });
         const model = "gemini-2.0-flash-exp-image-generation";
         const response = await generateWithRetry(ai, model, enhancedPrompt);
@@ -226,8 +239,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         await fs.writeFile(filePath, buffer);
         return res.status(200).json({
           success: true,
-          imageUrl,
-          direct_image_url: imageUrl,
+          imageUrl: staticImageUrl,
+          direct_image_url: staticImageUrl,
           index,
         });
       } catch (error: any) {

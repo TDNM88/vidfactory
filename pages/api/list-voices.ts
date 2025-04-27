@@ -14,7 +14,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse<Respon
   }
 
   try {
-    const refVoicesDir = path.join(process.cwd(), 'public', 'ref_voices');
+    const refVoicesDir = path.join(process.cwd(), 'public', 'voices');
     if (!fs.existsSync(refVoicesDir)) {
       return res.status(200).json({ success: true, voices: [] });
     }

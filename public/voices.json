@@ -1,0 +1,33 @@
+[
+  {
+    "fileName": "voices/Mai An.wav",
+    "displayName": "Mai An (Nữ)",
+    "apiType": "f5-tts"
+  },
+  {
+    "fileName": "voices/Mai An.wav",
+    "displayName": "Mai An (Nữ)",
+    "apiType": "vixtts"
+  },
+  {
+    "fileName": "voices/Phan Linh.wav",
+    "displayName": "Phan Linh (Nữ)",
+    "apiType": "f5-tts"
+  },
+  {
+    "fileName": "voices/Phan Linh.wav",
+    "displayName": "Phan Linh (Nữ)",
+    "apiType": "vixtts"
+  },
+  {
+    "fileName": "voices/Trường Giang.wav",
+    "displayName": "Trường Giang (Nam)",
+    "apiType": "f5-tts"
+  },
+  {
+    "fileName": "voices/Trường Giang.wav",
+    "displayName": "Trường Giang (Nam)",
+    "apiType": "vixtts"
+  }
+]
+

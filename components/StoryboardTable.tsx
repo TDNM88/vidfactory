@@ -3,6 +3,7 @@ import Image from "next/image";
 import { ImageIcon, Mic, Video, Edit2, Save, Play } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "./ui/select";
+import { useSecureMedia } from './useSecureMedia';
 
 interface Segment {
   script: string;
@@ -145,28 +146,7 @@ const StoryboardTable: React.FC<StoryboardTableProps> = ({
               {/* ẢNH MINH HỌA */}
               <TableCell className="align-top">
                 {(segment.direct_image_url || segment.imageUrl || segment.image_base64) ? (
-                  <div className="relative w-[120px] h-[120px] rounded-xl border border-gray-200 overflow-hidden bg-gray-50 group">
-                    <Image
-                      src={segment.image_base64 || segment.direct_image_url || segment.imageUrl || "/placeholder.png"}
-                      alt={`Ảnh ${idx + 1}`}
-                      fill
-                      className="object-cover"
-                      loading="lazy"
-                      onError={() => console.error(`Failed to load image for segment ${idx + 1}`)}
-                    />
-                    {editable && (
-                      <button
-                        onClick={() => onRemoveImage && onRemoveImage(idx)}
-                        className="absolute top-1 right-1 bg-white bg-opacity-80 rounded-full p-1 shadow hover:bg-red-200 transition opacity-0 group-hover:opacity-100"
-                        title="Xóa ảnh này"
-                        disabled={!editable}
-                      >
-                        <svg width="18" height="18" fill="none" stroke="red" strokeWidth="2" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
+                  <SecureImagePreview url={segment.direct_image_url || segment.imageUrl} fallback={segment.image_base64} idx={idx} onRemoveImage={onRemoveImage} editable={editable} />
                 ) : (
                   editable ? (
                     <div className="flex flex-col items-center gap-2">
@@ -227,7 +207,7 @@ const StoryboardTable: React.FC<StoryboardTableProps> = ({
                     )}
                   </div>
                   {segment.voice_url ? (
-                    <audio controls src={segment.voice_url} className="w-full mt-2" />
+                    <SecureAudio url={segment.voice_url} />
                   ) : (
                     <span className="text-gray-400 text-xs">Chưa có audio</span>
                   )}
@@ -244,13 +224,7 @@ const StoryboardTable: React.FC<StoryboardTableProps> = ({
                           className="focus:outline-none"
                           aria-label={`Xem video ${video.type} phân đoạn ${idx + 1}`}
                         >
-                          <video
-                            src={video.url}
-                            className="w-40 h-[90px] rounded-lg object-cover"
-                            poster={segment.image_base64 || segment.direct_image_url || segment.imageUrl || "/placeholder.png"}
-                            muted
-                            aria-hidden="true"
-                          />
+                          <SecureVideoThumb url={video.url} poster={segment.image_base64 || segment.direct_image_url || segment.imageUrl || "/placeholder.png"} />
                         </button>
                         <span className="mt-1 block text-xs uppercase text-gray-500">{video.type}</span>
                       </div>
@@ -267,20 +241,20 @@ const StoryboardTable: React.FC<StoryboardTableProps> = ({
                     {/* Nút thêm phân đoạn phía trên */}
                     <button
                       type="button"
-                      className="mb-2 px-2 py-1 rounded bg-green-500 text-white hover:bg-green-600 transition text-xs"
+                      className="mb-2 w-8 h-8 flex items-center justify-center rounded-full bg-green-500 text-white hover:bg-green-600 transition"
                       onClick={() => onAddSegment && onAddSegment(idx)}
                       title="Thêm phân đoạn phía trên"
                     >
-                      Thêm phía trên
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#22c55e"/><path d="M12 8v8M8 12h8" stroke="#fff" strokeWidth="2" strokeLinecap="round"/></svg>
                     </button>
                     {/* Nút xóa phân đoạn */}
                     <button
                       type="button"
-                      className="mb-2 px-2 py-1 rounded bg-red-500 text-white hover:bg-red-700 transition text-xs"
+                      className="mb-2 w-8 h-8 flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-700 transition"
                       onClick={() => onRemoveSegment && onRemoveSegment(idx)}
                       title="Xóa phân đoạn này"
                     >
-                      Xóa phân đoạn
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#ef4444"/><path d="M8 12h8" stroke="#fff" strokeWidth="2" strokeLinecap="round"/></svg>
                     </button>
                     {/* Tạo ảnh minh họa */}
                     <button
@@ -332,11 +306,11 @@ const StoryboardTable: React.FC<StoryboardTableProps> = ({
               <TableCell colSpan={6} className="text-center py-4">
                 <button
                   type="button"
-                  className="px-4 py-2 rounded bg-green-500 text-white hover:bg-green-600 transition"
+                  className="w-10 h-10 flex items-center justify-center rounded-full bg-green-500 text-white hover:bg-green-600 transition"
                   onClick={() => onAddSegment && onAddSegment(segments.length)}
                   title="Thêm phân đoạn mới ở cuối"
                 >
-                  Thêm phân đoạn mới
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#22c55e"/><path d="M12 8v8M8 12h8" stroke="#fff" strokeWidth="2" strokeLinecap="round"/></svg>
                 </button>
               </TableCell>
             </TableRow>
@@ -346,5 +320,94 @@ const StoryboardTable: React.FC<StoryboardTableProps> = ({
     </div>
   );
 };
+
+// Component phát audio bảo mật
+function SecureAudio({ url }: { url: string }) {
+  const { url: audioUrl, blob, loading, error } = useSecureMedia(url);
+  const handleDownload = () => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = audioUrl || '';
+    a.download = 'audio.mp3';
+    a.click();
+  };
+  if (loading) return <div className="text-xs text-sky-500">Đang tải audio...</div>;
+  if (error) return <div className="text-xs text-red-500">Không thể phát audio</div>;
+  return (
+    <div className="flex items-center gap-2 mt-2">
+      <audio controls src={audioUrl || ''} className="w-full" />
+      {audioUrl && <button onClick={handleDownload} className="px-2 py-1 text-xs bg-sky-500 text-white rounded hover:bg-sky-600">Tải về</button>}
+    </div>
+  );
+}
+
+// Component thumbnail video bảo mật
+function SecureVideoThumb({ url, poster }: { url: string, poster: string }) {
+  const { url: videoUrl, blob, loading, error } = useSecureMedia(url);
+  const handleDownload = () => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = videoUrl || '';
+    a.download = 'video.mp4';
+    a.click();
+  };
+  if (loading) return <div className="w-40 h-[90px] flex items-center justify-center text-sky-500">Đang tải...</div>;
+  if (error) return <div className="w-40 h-[90px] flex items-center justify-center text-red-500">Lỗi video</div>;
+  return (
+    <div className="relative w-40 h-[90px]">
+      <video src={videoUrl || ''} className="w-40 h-[90px] rounded-lg object-cover" poster={poster} muted aria-hidden="true" />
+      {videoUrl && <button onClick={handleDownload} className="absolute bottom-1 right-1 px-1.5 py-0.5 text-[10px] bg-sky-500 text-white rounded hover:bg-sky-600">Tải</button>}
+    </div>
+  );
+}
+
+// Component preview ảnh bảo mật
+function SecureImagePreview({ url, fallback, idx, onRemoveImage, editable }: { url?: string, fallback?: string, idx: number, onRemoveImage?: (idx: number) => void, editable: boolean }) {
+  const isSecure = url && url.startsWith('/api/user-files');
+  const { url: imgUrl, blob, loading, error } = useSecureMedia(isSecure ? url! : null);
+  const handleDownload = () => {
+    if (!blob && !url && !fallback) return;
+    if (imgUrl) {
+      const a = document.createElement('a');
+      a.href = imgUrl;
+      a.download = `image_${idx + 1}.png`;
+      a.click();
+    } else if (fallback) {
+      const a = document.createElement('a');
+      a.href = fallback;
+      a.download = `image_${idx + 1}.png`;
+      a.click();
+    }
+  };
+  return (
+    <div className="relative w-[120px] h-[120px] rounded-xl border border-gray-200 overflow-hidden bg-gray-50 group">
+      {loading ? (
+        <div className="w-full h-full flex items-center justify-center text-sky-500">Đang tải...</div>
+      ) : error ? (
+        <div className="w-full h-full flex items-center justify-center text-red-500">Lỗi ảnh</div>
+      ) : (
+        <img
+          src={imgUrl || fallback || "/placeholder.png"}
+          alt={`Ảnh ${idx + 1}`}
+          className="object-cover w-full h-full"
+          loading="lazy"
+        />
+      )}
+      <button onClick={handleDownload} className="absolute bottom-1 left-1 px-1.5 py-0.5 text-[10px] bg-sky-500 text-white rounded hover:bg-sky-600">Tải</button>
+      {editable && (
+        <button
+          onClick={() => onRemoveImage && onRemoveImage(idx)}
+          className="absolute top-1 right-1 bg-white bg-opacity-80 rounded-full p-1 shadow hover:bg-red-200 transition opacity-0 group-hover:opacity-100"
+          title="Xóa ảnh này"
+          disabled={!editable}
+        >
+          <svg width="18" height="18" fill="none" stroke="red" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+}
 
 export default StoryboardTable;

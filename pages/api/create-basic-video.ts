@@ -5,6 +5,10 @@ import fetch from 'node-fetch';
 import fs from 'fs-extra';
 import { v4 as uuidv4 } from 'uuid';
 import { promisify } from 'util';
+import { PrismaClient } from '@prisma/client';
+import { verifyToken } from '../../lib/auth';
+
+const prisma = new PrismaClient();
 
 // Cấu hình fluent-ffmpeg: Ưu tiên FFMPEG_PATH, sau đó đến ffmpeg-bin/ffmpeg.exe
 const ffmpegPath =
@@ -50,14 +54,13 @@ const platformSizes: Record<string, PlatformSize> = {
 };
 
 // Thư mục lưu trữ
-const OUTPUT_DIR = path.join(process.cwd(), 'public', 'videos');
+// OUTPUT_DIR will be set per user
 const TEMP_DIR = path.join(process.cwd(), 'public', 'temp');
 
 // Đảm bảo thư mục tồn tại
 try {
-  fs.ensureDirSync(OUTPUT_DIR);
   fs.ensureDirSync(TEMP_DIR);
-  console.log('Directories ensured:', OUTPUT_DIR, TEMP_DIR);
+  console.log('Directories ensured:', TEMP_DIR);
 } catch (error) {
   console.error('Failed to create directories:', error);
 }
@@ -141,6 +144,12 @@ export default async function handler(
     return res.status(405).json({ success: false, error: 'Phương thức không được hỗ trợ' });
   }
 
+  // Require authentication for all user-generated videos
+  const user = await verifyToken(req, prisma);
+  if (!user) {
+    return res.status(401).json({ success: false, error: "Unauthorized" });
+  }
+
   const { imageUrl, voiceUrl, segmentIdx, platform } = req.body as RequestBody;
 
   // Kiểm tra đầu vào
@@ -155,13 +164,17 @@ export default async function handler(
 
   try {
     // Tạo tên file tạm và đầu ra
+    const userId = String(user.id);
+    const OUTPUT_DIR = path.join(process.cwd(), 'public', 'generated-videos', userId);
+    await fs.ensureDir(OUTPUT_DIR);
     const tempImageName = `${uuidv4()}.png`;
     const tempImagePath = path.join(TEMP_DIR, tempImageName);
     const processedImageName = `${uuidv4()}_processed.png`;
     const processedImagePath = path.join(TEMP_DIR, processedImageName);
     const outputVideoName = `segment_${segmentIdx}_basic.mp4`;
     const outputVideoPath = path.join(OUTPUT_DIR, outputVideoName);
-    const outputVideoUrl = `/videos/${outputVideoName}`;
+    // Secure API URL for access
+    const secureVideoUrl = `/api/user-files?type=generated-videos&filename=${encodeURIComponent(outputVideoName)}&userId=${encodeURIComponent(userId)}`;
 
     // Tải ảnh
     await downloadFile(imageUrl, tempImagePath);
@@ -223,8 +236,8 @@ export default async function handler(
     }
 
     // Trả về URL video
-    console.log(`Returning video URL: ${outputVideoUrl}`);
-    res.status(200).json({ success: true, videoUrl: outputVideoUrl });
+    console.log(`Returning video URL: ${secureVideoUrl}`);
+    res.status(200).json({ success: true, videoUrl: secureVideoUrl });
   } catch (error) {
     let errMsg = 'Không tạo được video!';
     let errStack = '';

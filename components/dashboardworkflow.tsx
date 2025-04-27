@@ -9,6 +9,35 @@ import { toAbsoluteUrl } from '../lib/toAbsoluteUrl';
 import type { BasicVideoRequest } from './types';
 
 // Định nghĩa types
+
+// --- Hàm lưu kịch bản ---
+const saveScript = async (sessionData: SessionData) => {
+  if (!sessionData.script || !sessionData.script.segments || sessionData.script.segments.length === 0) {
+    toast.error('Không có kịch bản để lưu!');
+    return;
+  }
+  const session_id = sessionData.session_id || 'session_' + Date.now();
+  try {
+    const res = await fetch('/api/save-script', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id,
+        script: sessionData.script,
+        subject: sessionData.subject,
+        summary: sessionData.summary,
+        platform: sessionData.platform,
+        duration: sessionData.duration,
+        styleSettings: sessionData.styleSettings
+      })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Lỗi khi lưu kịch bản');
+    toast.success('Đã lưu kịch bản thành công!');
+  } catch (err: any) {
+    toast.error(err.message || 'Lỗi khi lưu kịch bản!');
+  }
+};
 interface Segment {
   script: string;
   image_description?: string;
@@ -39,6 +68,7 @@ interface StyleOption {
 }
 
 interface SessionData {
+  session_id?: string; // Có thể có hoặc không, tuỳ từng bước
   subject: string;
   summary: string;
   platform: string;
@@ -99,8 +129,195 @@ const styleOptions: StyleOption[] = [
 ];
 
 const DashboardWorkflow: React.FC = () => {
+  // Modal danh sách kịch bản đã lưu
+  const [showScriptList, setShowScriptList] = useState(false);
+  const [savedScripts, setSavedScripts] = useState<any[]>([]);
+  const [loadingScripts, setLoadingScripts] = useState(false);
+  const [loadingScriptId, setLoadingScriptId] = useState<string|null>(null);
+  const [searchScript, setSearchScript] = useState('');
+  const [renamingId, setRenamingId] = useState<string|null>(null);
+  const [renameSubject, setRenameSubject] = useState('');
+  const [renameSummary, setRenameSummary] = useState('');
+  const [deletingId, setDeletingId] = useState<string|null>(null);
+
+  // Lấy danh sách kịch bản đã lưu
+  const fetchSavedScripts = async () => {
+    setLoadingScripts(true);
+    try {
+      const res = await fetch('/api/list-saved-scripts');
+      const data = await res.json();
+      if (data.success) setSavedScripts(data.scripts);
+      else toast.error(data.error || 'Lỗi khi tải danh sách kịch bản!');
+    } catch (err: any) {
+      toast.error(err.message || 'Lỗi khi tải danh sách kịch bản!');
+    } finally {
+      setLoadingScripts(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showScriptList) fetchSavedScripts();
+    // eslint-disable-next-line
+  }, [showScriptList]);
+
+  // Đổi tên kịch bản
+  const handleRenameScript = async (session_id: string, file: string) => {
+    if (!renameSubject.trim()) {
+      toast.error('Tiêu đề không được để trống!');
+      return;
+    }
+    setRenamingId(session_id);
+    try {
+      const res = await fetch('/api/rename-script', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id, file, subject: renameSubject, summary: renameSummary })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Đã đổi tên kịch bản!');
+        fetchSavedScripts();
+        setRenamingId(null);
+      } else {
+        toast.error(data.error || 'Lỗi khi đổi tên kịch bản!');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Lỗi khi đổi tên kịch bản!');
+    } finally {
+      setRenamingId(null);
+    }
+  };
+
+  // Xoá kịch bản
+  const handleDeleteScript = async (session_id: string, file: string) => {
+    if (!window.confirm('Bạn chắc chắn muốn xoá kịch bản này?')) return;
+    setDeletingId(session_id);
+    try {
+      const res = await fetch(`/api/delete-script?session_id=${session_id}&file=${file}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Đã xoá kịch bản!');
+        setSavedScripts((prev) => prev.filter(s => s.session_id !== session_id));
+      } else {
+        toast.error(data.error || 'Lỗi khi xoá kịch bản!');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Lỗi khi xoá kịch bản!');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  // Tải lại kịch bản
+  const handleLoadScript = async (session_id: string, file: string) => {
+    setLoadingScriptId(session_id);
+    try {
+      const res = await fetch(`/api/load-script?session_id=${session_id}&file=${file}`);
+      const data = await res.json();
+      if (data.success && data.data) {
+        setSessionData((prev) => ({ ...prev, ...data.data }));
+        toast.success('Đã tải lại kịch bản!');
+        setShowScriptList(false);
+      } else {
+        toast.error(data.error || 'Lỗi khi tải lại kịch bản!');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Lỗi khi tải lại kịch bản!');
+    } finally {
+      setLoadingScriptId(null);
+    }
+  };
+  // Handler to generate image for a single segment
+  const handleGenerateImageForSegment = async (idx: number) => {
+    const segment = sessionData.script.segments[idx];
+    if (!segment || !segment.script) {
+      toast.error(`Phân đoạn ${idx + 1} không hợp lệ hoặc chưa có nội dung!`);
+      return;
+    }
+    setLoading(true, `Đang tạo ảnh minh họa cho phân đoạn ${idx + 1}...`);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+      const res = await fetch('/api/generate-images', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          segmentIdx: idx,
+          prompt: segment.script,
+          image_description: segment.image_description,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success || !data.direct_image_url) {
+        throw new Error(data.error || 'Lỗi khi tạo ảnh minh họa');
+      }
+      const newSegments = [...sessionData.script.segments];
+      newSegments[idx] = {
+        ...newSegments[idx],
+        direct_image_url: data.direct_image_url,
+        imageUrl: data.imageUrl,
+        image_base64: undefined, // Always use URL for state and rendering
+      };
+      setSessionData((prev) => ({
+        ...prev,
+        script: { ...prev.script, segments: newSegments },
+      }));
+      toast.success(`Đã tạo ảnh minh họa cho phân đoạn ${idx + 1}!`);
+    } catch (err: any) {
+      toast.error(err.message || `Lỗi khi tạo ảnh minh họa cho phân đoạn ${idx + 1}!`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handler to generate voice for a single segment
+  const handleGenerateVoiceForSegment = async (idx: number, voiceApiType: 'f5-tts' | 'vixtts') => {
+    const segment = sessionData.script.segments[idx];
+    if (!segment || !segment.script || !segment.voiceName) {
+      toast.error(`Phân đoạn ${idx + 1} chưa có nội dung hoặc chưa chọn giọng!`);
+      return;
+    }
+    setLoading(true, `Đang tạo giọng đọc cho phân đoạn ${idx + 1}...`);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+      const res = await fetch('/api/generate-voice', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          text: segment.script,
+          voiceName: segment.voiceName,
+          voiceApiType: voiceApiType,
+          segmentIdx: idx,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success || !data.voice_url) {
+        throw new Error(data.error || 'Lỗi khi tạo giọng đọc');
+      }
+      const newSegments = [...sessionData.script.segments];
+      newSegments[idx] = {
+        ...newSegments[idx],
+        voice_url: data.voice_url, // direct static URL for playback
+        voice_path: data.voice_path, // absolute server path for backend
+      };
+      setSessionData((prev) => ({
+        ...prev,
+        script: { ...prev.script, segments: newSegments },
+      }));
+      toast.success(`Đã tạo giọng đọc cho phân đoạn ${idx + 1}!`);
+    } catch (err: any) {
+      toast.error(err.message || `Lỗi khi tạo giọng đọc cho phân đoạn ${idx + 1}!`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Handler to add a new segment
-  // Handler to add a new segment at a specific index (insert)
   const handleAddSegment = (insertIdx: number) => {
     setSessionData((prev) => {
       const newSegment = {
@@ -155,7 +372,6 @@ const DashboardWorkflow: React.FC = () => {
     setVideoResults((prev) => prev.filter((_, idx) => idx !== removeIdx));
     setOpenSegments((prev) => prev.filter((_, idx) => idx !== removeIdx));
   };
-
 
   const [sessionData, setSessionData] = useState<SessionData>(() => {
     if (typeof window !== 'undefined') {
@@ -376,13 +592,18 @@ const DashboardWorkflow: React.FC = () => {
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64 = reader.result as string;
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
         const res = await fetch('/api/generate-images', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
           body: JSON.stringify({
-            base64,
+            image_base64: base64,
             segmentIdx: idx,
-            styleSettings: sessionData.styleSettings,
+            prompt: sessionData.script.segments[idx]?.script,
+            image_description: sessionData.script.segments[idx]?.image_description,
           }),
         });
         const data = await res.json();
@@ -394,9 +615,9 @@ const DashboardWorkflow: React.FC = () => {
         const newSegments = [...sessionData.script.segments];
         newSegments[idx] = {
           ...newSegments[idx],
-          direct_image_url: data.direct_image_url,
-          imageUrl: data.imageUrl,
-          image_base64: data.image_base64,
+          direct_image_url: toAbsoluteUrl(data.direct_image_url),
+          imageUrl: toAbsoluteUrl(data.imageUrl),
+          image_base64: undefined, // Always use URL for state and rendering
         };
         setSessionData((prev) => ({
           ...prev,
@@ -412,139 +633,52 @@ const DashboardWorkflow: React.FC = () => {
     }
   };
 
-  const handleGenerateImageForSegment = async (idx: number) => {
-    const segment = sessionData.script.segments[idx];
-    if (!segment.script) {
-      toast.error(`Phân đoạn ${idx + 1} chưa có kịch bản!`);
-      return;
-    }
-    setLoading(true, `Đang tạo ảnh cho phân đoạn ${idx + 1}...`);
-    try {
-      const res = await fetch('/api/generate-images', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: segment.image_description || segment.script,
-          segmentIdx: idx,
-          styleSettings: sessionData.styleSettings,
-        }),
-      });
-      const data = await res.json();
-      if (!data.success || !data.imageUrl) {
-        throw new Error(data.error || `Lỗi khi tạo ảnh cho phân đoạn ${idx + 1}`);
-      }
-      const newSegments = [...sessionData.script.segments];
-      newSegments[idx] = {
-        ...newSegments[idx],
-        direct_image_url: data.direct_image_url || (data.imageUrl && !data.imageUrl.startsWith('data:image') ? data.imageUrl : undefined),
-        imageUrl: data.imageUrl,
-        image_base64: data.image_base64 || (data.imageUrl && data.imageUrl.startsWith('data:image') ? data.imageUrl : undefined),
-      };
-      setSessionData((prev) => ({
-        ...prev,
-        script: { ...prev.script, segments: newSegments },
-      }));
-      toast.success(`Đã tạo ảnh cho phân đoạn ${idx + 1}!`);
-    } catch (err: any) {
-      toast.error(err.message || `Lỗi khi tạo ảnh cho phân đoạn ${idx + 1}!`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGenerateVoiceForSegment = async (idx: number, voiceApiType: 'f5-tts' | 'vixtts') => {
-    const segment = sessionData.script.segments[idx];
-    if (!segment.script) {
-      toast.error(`Phân đoạn ${idx + 1} chưa có kịch bản!`);
-      return;
-    }
-    if (!segment.voiceName) {
-      toast.error(`Vui lòng chọn giọng cho phân đoạn ${idx + 1}!`);
-      return;
-    }
-    setLoading(true, `Đang tạo giọng (${voiceApiType === 'vixtts' ? 'VixTTS' : 'F5-TTS'}) cho phân đoạn ${idx + 1}...`);
-    try {
-      const payload = {
-        text: segment.script,
-        segmentIdx: idx,
-        voiceName: segment.voiceName,
-        voiceApiType,
-        ...(voiceApiType === 'vixtts' ? { language: 'vi', normalizeText: true } : { speed: 1 }),
-      };
-
-      const res = await fetch('/api/generate-voice', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (!data.success || !data.voiceUrl) {
-        throw new Error(data.error || `Lỗi khi tạo giọng cho phân đoạn ${idx + 1}`);
-      }
-
-      const newSegments = [...sessionData.script.segments];
-      newSegments[idx] = {
-        ...newSegments[idx],
-        voice_url: data.voiceUrl,
-        voice_path: data.voiceUrl,
-      };
-      setSessionData((prev) => ({
-        ...prev,
-        script: { ...prev.script, segments: newSegments },
-      }));
-      toast.success(`Đã tạo giọng (${voiceApiType === 'vixtts' ? 'VixTTS' : 'F5-TTS'}) cho phân đoạn ${idx + 1}!`);
-    } catch (err: any) {
-      toast.error(err.message || `Lỗi khi tạo giọng cho phân đoạn ${idx + 1}!`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleGenerateImages = async () => {
-    if (!sessionData.script.segments.length) {
-      toast.error('Chưa có kịch bản để tạo ảnh!');
-      return;
-    }
-    setLoading(true, 'Đang tạo tất cả ảnh minh họa...');
+    setLoading(true, 'Đang tạo ảnh minh họa...');
     try {
-      const imagePromises = sessionData.script.segments.map(async (segment, idx) => {
-        if (segment.direct_image_url || segment.imageUrl) return null;
-        const res = await fetch('/api/generate-images', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: segment.image_description || segment.script,
-            segmentIdx: idx,
-            styleSettings: sessionData.styleSettings,
-          }),
-        });
-        const data = await res.json();
-        if (!data.success || !data.imageUrl) {
-          throw new Error(data.error || `Lỗi khi tạo ảnh cho phân đoạn ${idx + 1}`);
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+      const promises = sessionData.script.segments.map(async (segment, idx) => {
+        if (!segment.direct_image_url) {
+          const res = await fetch('/api/generate-images', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({
+              segmentIdx: idx,
+              styleSettings: sessionData.styleSettings,
+            }),
+          });
+          const data = await res.json();
+          if (!data.success || !data.direct_image_url) {
+            throw new Error(data.error || 'Lỗi khi tạo ảnh minh họa');
+          }
+          return {
+            idx,
+            direct_image_url: toAbsoluteUrl(data.direct_image_url),
+            imageUrl: toAbsoluteUrl(data.imageUrl),
+          };
         }
-        return {
-          idx,
-          direct_image_url: data.direct_image_url || (data.imageUrl && !data.imageUrl.startsWith('data:image') ? data.imageUrl : undefined),
-          imageUrl: data.imageUrl,
-          image_base64: data.image_base64 || (data.imageUrl && data.imageUrl.startsWith('data:image') ? data.imageUrl : undefined),
-        };
+        return null;
       });
-      const results = (await Promise.all(imagePromises)).filter((r): r is NonNullable<typeof r> => r !== null);
+      const results = await Promise.all(promises);
       const newSegments = [...sessionData.script.segments];
-      results.forEach(({ idx, direct_image_url, imageUrl, image_base64 }) => {
-        newSegments[idx] = {
-          ...newSegments[idx],
-          direct_image_url,
-          imageUrl,
-          image_base64,
-        };
+      results.forEach((result) => {
+        if (result) {
+          newSegments[result.idx] = {
+            ...newSegments[result.idx],
+            direct_image_url: result.direct_image_url,
+            imageUrl: result.imageUrl,
+            image_base64: undefined, // Always use URL for state and rendering
+          };
+        }
       });
-      setSessionData((prev) => ({
+      setSessionData((prev: SessionData) => ({
         ...prev,
         script: { ...prev.script, segments: newSegments },
       }));
-      toast.success('Đã tạo tất cả ảnh minh họa!');
+      toast.success('Đã tạo ảnh minh họa!');
     } catch (err: any) {
       toast.error(err.message || 'Lỗi khi tạo ảnh!');
     } finally {
@@ -574,9 +708,13 @@ const DashboardWorkflow: React.FC = () => {
       };
       let videoUrl: string;
       if (type === 'basic') {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
         const res = await fetch('/api/create-basic-video', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
           body: JSON.stringify(requestBody),
         });
         const data = await res.json();
@@ -867,7 +1005,205 @@ const DashboardWorkflow: React.FC = () => {
         {currentStep === 2 && (
           <div className="bg-white shadow-xl rounded-2xl p-4 md:p-8 transition-all duration-300">
             <h2 className="text-2xl font-bold text-[hsl(160,83%,28%)] mb-2">Storyboard Video</h2>
-            <p className="text-gray-500 mb-6">Kiểm tra và tạo video từng phân đoạn.</p>
+            <div className="mb-6">
+  <p className="text-gray-700 text-base mb-4">
+    <b>Storyboard chuyên nghiệp</b> giúp bạn dễ dàng quản lý từng phân đoạn video, tối ưu hóa nội dung, hình ảnh, giọng đọc và video minh họa cho mỗi ý tưởng. Nhờ đó, quá trình sản xuất video trở nên trực quan, hiệu quả và sáng tạo hơn.
+  </p>
+  <div className="flex flex-wrap gap-4 justify-center mb-2">
+    {/* Nút mở danh sách kịch bản đã lưu */}
+    <div className="flex flex-col items-center">
+      <button
+        className="w-8 h-8 flex items-center justify-center rounded-full bg-sky-500 text-white mb-1 shadow-lg transform transition-all duration-300 hover:scale-110 hover:shadow-2xl hover:bg-sky-600 animate-fade-in"
+        onClick={() => setShowScriptList(true)}
+        title="Danh sách kịch bản đã lưu"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-6h13v6M9 5v6h13V5M3 5v14a2 2 0 002 2h14a2 2 0 002-2V5" /></svg>
+      </button>
+      <span className="text-xs text-gray-600">Danh sách kịch bản</span>
+    </div>
+    {/* Nút lưu kịch bản thực tế */}
+    <div className="flex flex-col items-center">
+      <button
+        className="w-8 h-8 flex items-center justify-center rounded-full bg-[hsl(160,83%,28%)] text-white mb-1 shadow-lg transform transition-all duration-300 hover:scale-110 hover:shadow-2xl hover:bg-[hsl(160,84%,39%)] animate-fade-in"
+        onClick={() => saveScript(sessionData)}
+        title="Lưu kịch bản"
+      >
+        <Save className="w-5 h-5" />
+      </button>
+      <span className="text-xs text-gray-600">Lưu kịch bản</span>
+    </div>
+    {/* Nút thêm phân đoạn */}
+  {/* Hiệu ứng animate cho từng nút minh hoạ */}
+    <div className="flex flex-col items-center">
+      <button className="w-8 h-8 flex items-center justify-center rounded-full bg-green-500 text-white mb-1 shadow-lg transform transition-all duration-300 hover:scale-110 hover:shadow-2xl hover:bg-green-600 animate-fade-in" disabled>
+        <span className="sr-only">Thêm phân đoạn</span>
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#22c55e"/><path d="M12 8v8M8 12h8" stroke="#fff" strokeWidth="2" strokeLinecap="round"/></svg>
+      </button>
+      <span className="text-xs text-gray-600">Thêm phân đoạn</span>
+    </div>
+    <div className="flex flex-col items-center">
+      <button className="w-8 h-8 flex items-center justify-center rounded-full bg-red-500 text-white mb-1 shadow-lg transform transition-all duration-300 hover:scale-110 hover:shadow-2xl hover:bg-red-600 animate-fade-in" disabled>
+        <span className="sr-only">Xoá phân đoạn</span>
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#ef4444"/><path d="M8 12h8" stroke="#fff" strokeWidth="2" strokeLinecap="round"/></svg>
+      </button>
+      <span className="text-xs text-gray-600">Xoá phân đoạn</span>
+    </div>
+    <div className="flex flex-col items-center">
+      <button className="w-10 h-10 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-[hsl(160,83%,28%)] text-white mb-1 shadow-lg transform transition-all duration-300 hover:scale-110 hover:shadow-2xl hover:bg-[hsl(160,84%,39%)] animate-fade-in" disabled>
+        <ImageIcon className="w-5 h-5" />
+      </button>
+      <span className="text-xs text-gray-600">Tạo ảnh minh hoạ</span>
+    </div>
+    <div className="flex flex-col items-center">
+      <button className="w-10 h-10 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-[hsl(174,84%,50%)] text-white mb-1 shadow-lg transform transition-all duration-300 hover:scale-110 hover:shadow-2xl hover:bg-[hsl(174,84%,60%)] animate-fade-in" disabled>
+        <Mic className="w-5 h-5" />
+      </button>
+      <span className="text-xs text-gray-600">Tạo giọng đọc</span>
+    </div>
+    <div className="flex flex-col items-center">
+      <button className="w-10 h-10 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-blue-600 text-white mb-1 shadow-lg transform transition-all duration-300 hover:scale-110 hover:shadow-2xl hover:bg-blue-700 animate-fade-in" disabled>
+        <Video className="w-5 h-5" />
+      </button>
+      <span className="text-xs text-gray-600">Tạo video</span>
+        </div>
+    {/* Nút sửa kịch bản */}
+    <div className="flex flex-col items-center">
+      <button className="w-8 h-8 flex items-center justify-center rounded-full bg-yellow-400 text-white mb-1 shadow-lg transform transition-all duration-300 hover:scale-110 hover:shadow-2xl hover:bg-yellow-500 animate-fade-in" disabled>
+        <Edit2 className="w-5 h-5" />
+      </button>
+      <span className="text-xs text-gray-600">Sửa kịch bản</span>
+    </div>
+    {/* Nút lưu kịch bản */}
+    <div className="flex flex-col items-center">
+      <button className="w-8 h-8 flex items-center justify-center rounded-full bg-[hsl(160,83%,28%)] text-white mb-1 shadow-lg transform transition-all duration-300 hover:scale-110 hover:shadow-2xl hover:bg-[hsl(160,84%,39%)] animate-fade-in" disabled>
+        <Save className="w-5 h-5" />
+      </button>
+      <span className="text-xs text-gray-600">Lưu kịch bản</span>
+    </div>
+    {/* Nút upload ảnh */}
+    <div className="flex flex-col items-center">
+      <button className="w-8 h-8 flex items-center justify-center rounded-full bg-violet-500 text-white mb-1 shadow-lg transform transition-all duration-300 hover:scale-110 hover:shadow-2xl hover:bg-violet-600 animate-fade-in" disabled>
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 9l5-5 5 5M12 4v12" /></svg>
+      </button>
+      <span className="text-xs text-gray-600">Upload ảnh</span>
+    </div>
+    {/* Nút xóa ảnh */}
+    <div className="flex flex-col items-center">
+      <button className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-400 text-white mb-1 shadow-lg transform transition-all duration-300 hover:scale-110 hover:shadow-2xl hover:bg-gray-500 animate-fade-in" disabled>
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+      </button>
+      <span className="text-xs text-gray-600">Xóa ảnh</span>
+        </div>
+  </div>
+
+  {/* Modal danh sách kịch bản đã lưu */}
+  {showScriptList && (
+    <Modal isOpen={showScriptList} onRequestClose={() => setShowScriptList(false)} ariaHideApp={false}>
+      <div className="p-4 max-w-lg w-full bg-white rounded-xl shadow-xl">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold">Danh sách kịch bản đã lưu</h2>
+          <button onClick={() => setShowScriptList(false)} className="text-gray-500 hover:text-red-500 text-xl">×</button>
+        </div>
+        {/* Thanh tìm kiếm */}
+        <div className="mb-3">
+          <input
+            type="text"
+            value={searchScript}
+            onChange={e => setSearchScript(e.target.value)}
+            placeholder="Tìm kiếm theo tiêu đề hoặc tóm tắt..."
+            className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-sky-400"
+          />
+        </div>
+        {loadingScripts ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="animate-spin w-8 h-8 text-sky-500" />
+          </div>
+        ) : (
+          <div className="max-h-80 overflow-y-auto divide-y">
+            {savedScripts.filter(s => !searchScript.trim() || (s.subject && s.subject.toLowerCase().includes(searchScript.toLowerCase())) || (s.summary && s.summary.toLowerCase().includes(searchScript.toLowerCase()))).length === 0 ? (
+              <div className="text-gray-500 text-center py-8">Không có kịch bản nào.</div>
+            ) : savedScripts.filter(s => !searchScript.trim() || (s.subject && s.subject.toLowerCase().includes(searchScript.toLowerCase())) || (s.summary && s.summary.toLowerCase().includes(searchScript.toLowerCase())))
+              .map((s) => (
+              <div key={s.session_id} className="flex items-center justify-between py-2 px-1 hover:bg-sky-50 rounded transition">
+                <div className="flex-1 min-w-0">
+                  {renamingId === s.session_id ? (
+                    <div className="flex flex-col gap-1">
+                      <input
+                        type="text"
+                        value={renameSubject}
+                        onChange={e => setRenameSubject(e.target.value)}
+                        className="border rounded px-2 py-1 text-sm mb-1"
+                        placeholder="Tiêu đề mới..."
+                        maxLength={100}
+                        autoFocus
+                      />
+                      <input
+                        type="text"
+                        value={renameSummary}
+                        onChange={e => setRenameSummary(e.target.value)}
+                        className="border rounded px-2 py-1 text-xs"
+                        placeholder="Tóm tắt mới..."
+                        maxLength={200}
+                      />
+                      <div className="flex gap-2 mt-1">
+                        <button
+                          className="px-2 py-1 rounded bg-green-500 text-white text-xs hover:bg-green-600"
+                          onClick={() => handleRenameScript(s.session_id, s.file)}
+                          disabled={renamingId === s.session_id}
+                        >Lưu</button>
+                        <button
+                          className="px-2 py-1 rounded bg-gray-300 text-gray-700 text-xs hover:bg-gray-400"
+                          onClick={() => setRenamingId(null)}
+                        >Huỷ</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="font-semibold text-gray-900 truncate">{s.subject || <span className="italic text-gray-500">(Không tiêu đề)</span>}</div>
+                      <div className="text-xs text-gray-500 truncate">{s.summary}</div>
+                      <div className="text-xs text-gray-400">{new Date(s.savedAt).toLocaleString()}</div>
+                    </>
+                  )}
+                </div>
+                {/* Nút thao tác */}
+                <div className="flex gap-2 items-center ml-2">
+                  {renamingId !== s.session_id && (
+                    <>
+                      <button
+                        className="px-2 py-1 rounded bg-sky-500 text-white text-xs hover:bg-sky-600"
+                        onClick={() => handleLoadScript(s.session_id, s.file)}
+                        disabled={loadingScriptId === s.session_id}
+                      >
+                        {loadingScriptId === s.session_id ? <Loader2 className="animate-spin w-4 h-4" /> : <span>Chọn</span>}
+                      </button>
+                      <button
+                        className="px-2 py-1 rounded bg-yellow-400 text-white text-xs hover:bg-yellow-500"
+                        onClick={() => {
+                          setRenamingId(s.session_id);
+                          setRenameSubject(s.subject || '');
+                          setRenameSummary(s.summary || '');
+                        }}
+                        disabled={deletingId === s.session_id}
+                      >Đổi tên</button>
+                      <button
+                        className="px-2 py-1 rounded bg-red-500 text-white text-xs hover:bg-red-600"
+                        onClick={() => handleDeleteScript(s.session_id, s.file)}
+                        disabled={deletingId === s.session_id}
+                      >
+                        {deletingId === s.session_id ? <Loader2 className="animate-spin w-4 h-4" /> : <span>Xoá</span>}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Modal>
+  )}
+
+</div>
             <StoryboardTable
               segments={sessionData.script.segments}
               voiceOptions={voiceOptions}
@@ -881,7 +1217,6 @@ const DashboardWorkflow: React.FC = () => {
               tempInputs={tempInputs}
               onTempInputChange={handleTempInputChange}
               onSaveEditing={saveEditing}
-              onVoiceChange={handleVoiceChange}
               onGenerateImageForSegment={handleGenerateImageForSegment}
               onGenerateVoiceForSegment={handleGenerateVoiceForSegment}
               onCreateSegmentVideo={handleCreateSegmentVideo}
@@ -889,6 +1224,7 @@ const DashboardWorkflow: React.FC = () => {
               onUploadImage={handleUploadImage}
               isLoading={isLoading}
               voiceApiType={voiceApiType}
+              onVoiceChange={handleVoiceChange}
               onAddSegment={handleAddSegment}
               onRemoveSegment={handleRemoveSegment}
             />

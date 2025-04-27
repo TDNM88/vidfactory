@@ -133,13 +133,14 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Lưu video
-      const tempDir = join(process.cwd(), "public", "temp-videos");
-      await fs.mkdir(tempDir, { recursive: true });
+      // Lưu video vào thư mục user-specific
+      const userId = String(user.id);
+      const userDir = join(process.cwd(), "public", "generated-videos", userId);
+      await fs.mkdir(userDir, { recursive: true });
 
       const fileName = `vidu-${Date.now()}.mp4`;
-      const videoPath = join(tempDir, fileName);
-      const videoUrl = `/temp-videos/${fileName}`;
+      const videoPath = join(userDir, fileName);
+      const secureVideoUrl = `/api/user-files?type=generated-videos&filename=${encodeURIComponent(fileName)}&userId=${encodeURIComponent(userId)}`;
 
       const videoResp = await fetch(status.video_url!);
       if (!videoResp.ok) {
@@ -161,7 +162,7 @@ export async function POST(req: NextRequest) {
         writer.on("error", reject);
       });
 
-      return NextResponse.json({ success: true, videoUrl });
+      return NextResponse.json({ success: true, videoUrl: secureVideoUrl });
     }
 
     // Luồng cũ: Chuyển hướng sang /api/concat-videos-with-music
