@@ -50,9 +50,15 @@ const platformSizes: Record<string, PlatformSize> = {
 };
 
 // Thư mục lưu trữ
-// Thư mục sẽ được xác định động theo userId
-let OUTPUT_DIR: string;
-let TEMP_DIR: string;
+const OUTPUT_DIR = path.join(process.cwd(), 'public', 'videos');
+const TEMP_DIR = path.join(process.cwd(), 'public', 'temp');
+
+// Đảm bảo thư mục tồn tại
+try {
+  fs.ensureDirSync(OUTPUT_DIR);
+  fs.ensureDirSync(TEMP_DIR);
+  console.log('Directories ensured:', OUTPUT_DIR, TEMP_DIR);
+} catch (error) {
   console.error('Failed to create directories:', error);
 }
 
@@ -127,9 +133,6 @@ async function processImage(
 }
 
 // API handler
-import { PrismaClient } from '@prisma/client';
-import { verifyToken } from '../../lib/auth';
-
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ResponseData>
@@ -151,18 +154,6 @@ export default async function handler(
   }
 
   try {
-    // Xác thực user
-    const prisma = new PrismaClient();
-    const user = await verifyToken(req, prisma);
-    if (!user) {
-      return res.status(401).json({ success: false, error: 'Unauthorized' });
-    }
-    const userId = String(user.id);
-    OUTPUT_DIR = path.join(tmpdir(), 'generated-videos', userId);
-    TEMP_DIR = path.join(tmpdir(), 'generated-audios', userId); // dùng chung temp cho audio nếu cần
-    await fs.ensureDir(OUTPUT_DIR);
-    await fs.ensureDir(TEMP_DIR);
-
     // Tạo tên file tạm và đầu ra
     const tempImageName = `${uuidv4()}.png`;
     const tempImagePath = path.join(TEMP_DIR, tempImageName);
@@ -170,7 +161,7 @@ export default async function handler(
     const processedImagePath = path.join(TEMP_DIR, processedImageName);
     const outputVideoName = `segment_${segmentIdx}_basic.mp4`;
     const outputVideoPath = path.join(OUTPUT_DIR, outputVideoName);
-    const outputVideoUrl = `/api/temp-videos/${userId}/${outputVideoName}`;
+    const outputVideoUrl = `/videos/${outputVideoName}`;
 
     // Tải ảnh
     await downloadFile(imageUrl, tempImagePath);

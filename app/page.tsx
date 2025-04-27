@@ -10,25 +10,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
 import DashboardWorkflow from "@/components/dashboardworkflow";
 
-import { useUserStatus } from "@/components/UserStatusContext";
-
 export default function Home() {
-  const { user } = useUserStatus();
   const [showIntro, setShowIntro] = useState(true);
   const videoGeneratorRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (user) setShowIntro(false);
-  }, [user]);
-
-  // Nếu thực sự muốn kiểm tra token client-side (ví dụ F5 khi chưa load user), có thể bổ sung:
-  useEffect(() => {
-    if (!user && typeof window !== "undefined") {
-      if (localStorage.getItem("token")) {
-        setShowIntro(false);
-      }
-    }
-  }, []);
 
   const handleStartApp = () => {
     setShowIntro(false);
@@ -36,7 +20,6 @@ export default function Home() {
       duration: 3000,
     });
   };
-
 
 
   const handleCreateVideo = () => {
@@ -76,27 +59,17 @@ export default function Home() {
             }}
           />
         ))}
-        <DecorativeBackground />
       </div>
-
       <AnimatePresence mode="wait">
         {showIntro ? (
-          <motion.div
-            key="intro"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
-            className="relative z-10"
-          >
-            <IntroScreen onStart={handleStartApp} />
-          </motion.div>
+          <IntroScreen onStart={handleStartApp} />
         ) : (
           <motion.div
-            key="app"
-            initial={{ opacity: 0, y: 30 }}
+            key="dashboard"
+            initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
+            exit={{ opacity: 0, y: -40 }}
+            transition={{ duration: 0.6, ease: "easeInOut" }}
             className="relative z-10"
           >
             <div className="container mx-auto py-12 md:py-16 px-4">

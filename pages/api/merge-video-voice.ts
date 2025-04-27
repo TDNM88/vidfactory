@@ -36,13 +36,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const userId = String(user.id);
-    const tempDir = join(require('os').tmpdir(), 'generated-videos', userId);
+    const tempDir = join(process.cwd(), "public", "temp-videos");
     await fs.mkdir(tempDir, { recursive: true });
 
     const fileName = `merged-${Date.now()}-${segmentIdx}.mp4`;
     const outputFile = join(tempDir, fileName);
-    const newVideoUrl = `/api/temp-videos/${userId}/${fileName}`;
+    const newVideoUrl = `/temp-videos/${fileName}`;
 
     // Ghép video và giọng đọc
     await new Promise((resolve, reject) => {

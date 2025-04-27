@@ -1,11 +1,20 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useUserStatus } from "./UserStatusContext";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+
+import { useEffect } from "react";
 
 export default function UserStatus() {
   const { user, loading, error, refreshUser, setUser } = useUserStatus();
   const router = useRouter();
+
+  useEffect(() => {
+    if (!user) {
+      refreshUser();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!user) return (
     <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -46,9 +55,6 @@ export default function UserStatus() {
       <span className="ml-2 cursor-pointer" title="Trang cá nhân" onClick={() => router.push('/profile')}>
         {/* Avatar profile */}
         <Avatar className="w-8 h-8 border-2 border-primary hover:shadow-md transition-all">
-          {user.avatarUrl ? (
-            <AvatarImage src={user.avatarUrl} alt={user.username} />
-          ) : null}
           <AvatarFallback>{user.username?.[0]?.toUpperCase() || "U"}</AvatarFallback>
         </Avatar>
       </span>

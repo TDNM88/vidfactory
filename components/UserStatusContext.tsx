@@ -5,7 +5,6 @@ interface UserInfo {
   username: string;
   credit: number;
   isAdmin?: boolean;
-  avatarUrl?: string;
 }
 
 interface UserStatusContextType {
@@ -42,7 +41,6 @@ export const UserStatusProvider = ({ children }: { children: React.ReactNode }) 
           username: data.user.username,
           credit: data.user.credit,
           isAdmin: data.user.isAdmin,
-          avatarUrl: data.user.avatarUrl,
         });
       } else {
         setUser(null);
