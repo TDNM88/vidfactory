@@ -26,16 +26,48 @@ async function checkViduTaskStatus(taskId: string): Promise<{ state: string; vid
       Authorization: `Token ${process.env.VIDU_API_KEY}`,
     },
   });
-  const data = await res.json() as { state?: string, video_url?: string, error?: string };
+  const data: unknown = await res.json();
+  if (typeof data !== 'object' || data === null) {
+    return {
+      state: "unknown",
+      video_url: undefined,
+      error: "Invalid response format"
+    };
+  }
+  const safeData = data as { state?: string; video_url?: string; error?: string };
   return {
-    state: data.state || "unknown",
-    video_url: data.video_url,
-    error: data.error,
+    state: safeData.state || "unknown",
+    video_url: safeData.video_url,
+    error: safeData.error,
   };
+
+
+
 }
 
+import { PrismaClient } from '@prisma/client';
+import { verifyToken } from '../../lib/auth';
+
 export async function POST(req: NextRequest) {
+  // Helper: convert NextRequest headers to plain object
+  function getAuthHeaderFromNextRequest(req: NextRequest): string | undefined {
+    // next/server headers is a Headers instance
+    return req.headers.get('authorization') || req.headers.get('Authorization') || undefined;
+  }
+
   try {
+    // --- CREDIT CHECK ---
+    const prisma = new PrismaClient();
+    // Build fake NextApiRequest-like object for verifyToken
+    const fakeReq = { headers: { authorization: getAuthHeaderFromNextRequest(req) } } as any;
+    const user = await verifyToken(fakeReq, prisma);
+    if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    if (user.credit < 2) return NextResponse.json({ success: false, error: 'Không đủ credit để tạo video' }, { status: 400 });
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: user.id }, data: { credit: { decrement: 2 } } }),
+      prisma.creditLog.create({ data: { userId: user.id, action: 'create_video', delta: -2, note: 'Tạo video AI' } })
+    ]);
+    // --- END CREDIT CHECK ---
     const body = await req.json();
 
     // Luồng Vidu

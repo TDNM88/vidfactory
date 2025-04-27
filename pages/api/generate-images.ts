@@ -42,6 +42,9 @@ async function generateWithRetry(ai: GoogleGenAI, model: string, prompt: string,
 }
 
 // Main API handler
+import { PrismaClient } from '@prisma/client';
+import { verifyToken } from '../../lib/auth';
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);

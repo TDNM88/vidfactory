@@ -10,36 +10,34 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
 import DashboardWorkflow from "@/components/dashboardworkflow";
 
+import { useUserStatus } from "@/components/UserStatusContext";
+
 export default function Home() {
+  const { user } = useUserStatus();
   const [showIntro, setShowIntro] = useState(true);
-  const [hasSeenIntro, setHasSeenIntro] = useState(false);
   const videoGeneratorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const hasSeenIntro = localStorage.getItem("hasSeenIntro");
-    if (hasSeenIntro === "true") {
-      setShowIntro(false);
-      setHasSeenIntro(true);
+    if (user) setShowIntro(false);
+  }, [user]);
+
+  // Nếu thực sự muốn kiểm tra token client-side (ví dụ F5 khi chưa load user), có thể bổ sung:
+  useEffect(() => {
+    if (!user && typeof window !== "undefined") {
+      if (localStorage.getItem("token")) {
+        setShowIntro(false);
+      }
     }
   }, []);
 
   const handleStartApp = () => {
     setShowIntro(false);
-    localStorage.setItem("hasSeenIntro", "true");
-    setHasSeenIntro(true);
     toast.success("Chào mừng bạn đến với ứng dụng tạo video AI!", {
       duration: 3000,
     });
   };
 
-  const handleShowIntro = () => {
-    setShowIntro(true);
-    toast("Đang hiển thị màn hình giới thiệu...");
-  };
 
-  const handleReset = () => {
-    toast("Đã quay lại trạng thái ban đầu!");
-  };
 
   const handleCreateVideo = () => {
     toast("Hãy nhập thông tin để tạo video!");

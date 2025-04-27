@@ -4,8 +4,28 @@ import { join } from "path";
 import { promises as fs } from "fs";
 import { spawn } from "child_process";
 
+import { PrismaClient } from '@prisma/client';
+import { verifyToken } from '../../lib/auth';
+
 export async function POST(req: NextRequest) {
+  // Helper: convert NextRequest headers to plain object
+  function getAuthHeaderFromNextRequest(req: NextRequest): string | undefined {
+    return req.headers.get('authorization') || req.headers.get('Authorization') || undefined;
+  }
+
   try {
+    // --- CREDIT CHECK ---
+    const prisma = new PrismaClient();
+    // Build fake NextApiRequest-like object for verifyToken
+    const fakeReq = { headers: { authorization: getAuthHeaderFromNextRequest(req) } } as any;
+    const user = await verifyToken(fakeReq, prisma);
+    if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    if (user.credit < 1) return NextResponse.json({ success: false, error: 'Không đủ credit để ghép video' }, { status: 400 });
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: user.id }, data: { credit: { decrement: 1 } } }),
+      prisma.creditLog.create({ data: { userId: user.id, action: 'merge_video_voice', delta: -1, note: 'Ghép video và giọng đọc' } })
+    ]);
+    // --- END CREDIT CHECK ---
     const body = await req.json();
     const { videoUrl, voiceUrl, segmentIdx } = body;
 

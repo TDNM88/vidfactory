@@ -28,12 +28,20 @@ async function checkViduTaskStatus(taskId: string): Promise<{ state: string; vid
       Authorization: `Token ${process.env.VIDU_API_KEY}`,
     },
   });
-  const data = await res.json() as { state?: string, video_url?: string, error?: string };
+  const data = await res.json();
+  if (typeof data !== 'object' || data === null) {
+    return {
+      state: "unknown",
+      video_url: undefined,
+      error: "Invalid response format"
+    };
+  }
   return {
-    state: data.state || "unknown",
-    video_url: data.video_url,
-    error: data.error,
+    state: (data as any).state || "unknown",
+    video_url: (data as any).video_url,
+    error: (data as any).error,
   };
+
 }
 
 export async function POST(req: NextRequest) {

@@ -89,7 +89,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     let finalVideo = outputVideo;
     let videoUrl = `/temp-videos/${outputVideo.split(/[\\/]/).pop()}`;
     if (musicFile && musicFile !== "none") {
-      const musicPath = resolve(process.cwd(), "public", musicFile).replace(/\\/g, "/");
+      // Support music files in public/music as well
+let musicPath = resolve(process.cwd(), "public", musicFile).replace(/\\/g, "/");
+if (!existsSync(musicPath)) {
+  // Try public/music/<musicFile> if not found in public root
+  musicPath = resolve(process.cwd(), "public", "music", musicFile).replace(/\\/g, "/");
+  if (!existsSync(musicPath)) {
+    throw new Error(`Music file not found: ${musicFile}`);
+  }
+}
       if (!existsSync(musicPath)) {
         throw new Error(`Music file not found: ${musicFile}`);
       }

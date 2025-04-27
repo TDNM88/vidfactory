@@ -2,251 +2,104 @@
 
 import type React from "react"
 
-import { useState } from "react"
 import { motion } from "framer-motion"
 import { GradientButton } from "./ui-custom/gradient-button"
-import { GlassCard } from "./ui-custom/glass-card"
-import { Sparkles, ImageIcon, Mic, Video, CheckCircle, ArrowRight, ChevronRight, Play } from "lucide-react"
+import { Sparkles, ImageIcon, Mic, Video, CheckCircle, ArrowRight, Play } from "lucide-react"
 
 interface IntroScreenProps {
   onStart: () => void
 }
 
 export function IntroScreen({ onStart }: IntroScreenProps) {
-  const [currentSlide, setCurrentSlide] = useState(0)
-
-  const features = [
-    {
-      icon: <Sparkles className="h-8 w-8 text-primary" />,
-      title: "Tạo kịch bản thông minh",
-      description:
-        "Tạo kịch bản video chuyên nghiệp chỉ với vài thông tin đầu vào, được tối ưu cho từng nền tảng mạng xã hội.",
-    },
-    {
-      icon: <ImageIcon className="h-8 w-8 text-primary" />,
-      title: "Hình ảnh sáng tạo",
-      description: "Tự động tạo hình ảnh minh họa phù hợp với nội dung kịch bản, giúp video của bạn thu hút người xem.",
-    },
-    {
-      icon: <Mic className="h-8 w-8 text-primary" />,
-      title: "Giọng đọc tự nhiên",
-      description:
-        "Chuyển đổi kịch bản thành giọng đọc chất lượng cao với nhiều lựa chọn giọng đọc tiếng Việt tự nhiên.",
-    },
-    {
-      icon: <Video className="h-8 w-8 text-primary" />,
-      title: "Tạo video tự động",
-      description: "Tự động ghép hình ảnh, giọng đọc và nhạc nền thành video hoàn chỉnh, sẵn sàng đăng tải.",
-    },
-    {
-      icon: <CheckCircle className="h-8 w-8 text-primary" />,
-      title: "Xuất bản dễ dàng",
-      description:
-        "Tải xuống video chất lượng cao và ảnh bìa tùy chỉnh, sẵn sàng chia sẻ trên mọi nền tảng mạng xã hội.",
-    },
-  ]
-
-  const handleNextSlide = () => {
-    if (currentSlide < features.length - 1) {
-      setCurrentSlide(currentSlide + 1)
-    } else {
-      onStart()
-    }
-  }
-
-  const handleSkip = () => {
-    onStart()
-  }
-
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
-      <div className="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-        {/* Left side - Hero image */}
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 bg-white">
+      <div className="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-stretch">
+        {/* Cụm 1: Animation + Feature tags */}
         <motion.div
           initial={{ opacity: 0, x: -30 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
           className="order-2 lg:order-1"
         >
-          <div className="relative aspect-[4/3] w-full max-w-xl mx-auto">
-            {/* Main image */}
-            <div className="absolute inset-0 rounded-2xl overflow-hidden shadow-2xl">
+          <div className="relative aspect-[4/3] min-h-[420px] w-full max-w-xl mx-auto flex items-center justify-center lg:min-h-[520px]">
+            {/* Overlay mờ nhẹ để làm dịu ảnh phụ */}
+            <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] rounded-2xl pointer-events-none z-0" />
+            {/* Main image (custom illustration) */}
+            <div className="absolute inset-0 rounded-2xl overflow-hidden shadow-2xl z-10">
               <div className="relative w-full h-full">
                 <VideoCreationIllustration />
               </div>
             </div>
-
-            {/* Floating elements */}
+            {/* Feature tags động */}
             <motion.div
-              className="absolute -top-6 -right-6 bg-white rounded-xl shadow-lg p-3 z-10"
-              animate={{ y: [0, -8, 0] }}
-              transition={{ duration: 4, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+              initial="hidden"
+              animate="visible"
+              variants={{
+                visible: { transition: { staggerChildren: 0.13, delayChildren: 0.4 } },
+                hidden: {}
+              }}
+              className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-wrap justify-center gap-3 z-20"
             >
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Play className="h-4 w-4 text-primary" />
-                </div>
-                <span className="text-sm font-medium">Video đã sẵn sàng</span>
-              </div>
-            </motion.div>
-
-            <motion.div
-              className="absolute -bottom-4 -left-4 bg-white rounded-xl shadow-lg p-3 z-10"
-              animate={{ y: [0, 8, 0] }}
-              transition={{ duration: 5, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut", delay: 1 }}
-            >
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                </div>
-                <span className="text-sm font-medium">AI tạo kịch bản</span>
-              </div>
+              {[
+                { icon: <Sparkles className="h-4 w-4" />, text: "5 bước đơn giản" },
+                { icon: <ImageIcon className="h-4 w-4" />, text: "Đa dạng nội dung" },
+                { icon: <Mic className="h-4 w-4" />, text: "Tiếng Việt tự nhiên" },
+                { icon: <Video className="h-4 w-4" />, text: "AI hiện đại" },
+                { icon: <CheckCircle className="h-4 w-4" />, text: "Bảo mật & riêng tư" },
+                { icon: <ArrowRight className="h-4 w-4" />, text: "Tốc độ vượt trội" }
+              ].map((tag, idx) => (
+                <motion.div
+                  key={tag.text}
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0 }
+                  }}
+                  transition={{ type: 'spring', stiffness: 150, damping: 16 }}
+                  whileHover={{ scale: 1.08 }}
+                  className="bg-white/80 backdrop-blur-sm rounded-full px-4 py-2 shadow-sm border border-gray-100 flex items-center gap-2 cursor-pointer"
+                >
+                  <div className="text-primary">{tag.icon}</div>
+                  <span className="text-sm font-medium">{tag.text}</span>
+                </motion.div>
+              ))}
             </motion.div>
           </div>
         </motion.div>
-
-        {/* Right side - Content */}
+        {/* Cụm 2: Title + CTA */}
         <motion.div
           initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="order-1 lg:order-2"
+          transition={{ duration: 0.8, ease: 'easeOut' }}
+          className="order-1 lg:order-2 flex flex-col justify-center"
         >
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center lg:text-left mb-8"
+            className="text-center lg:text-left mb-10 mt-8 lg:mt-16 z-30 relative"
           >
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 gradient-heading">Tạo Video Mạng Xã Hội</h1>
-            <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto lg:mx-0">
-              Chuyển đổi ý tưởng thành video chuyên nghiệp chỉ trong vài phút với công nghệ AI tiên tiến
+            <motion.h1
+              className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-5 gradient-heading drop-shadow-lg relative"
+            >
+              Bùng Nổ Ý Tưởng, Chạm Đỉnh Viral!
+              <span className="block absolute left-1/2 -bottom-1 w-2/3 -translate-x-1/2 pointer-events-none">
+                <svg height="10" width="100%" viewBox="0 0 200 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M2 8 Q 40 2 70 8 Q 100 14 130 8 Q 160 2 198 8" stroke="#fbbf24" strokeWidth="3" fill="none" strokeLinecap="round"/>
+                </svg>
+              </span>
+            </motion.h1>
+            <p className="text-xl md:text-2xl text-primary font-semibold mb-3 max-w-2xl mx-auto lg:mx-0">
+              Sáng tạo video AI cực chất, viral cực nhanh – Không cần kỹ năng, chỉ cần cảm hứng!
             </p>
-          </motion.div>
-
-          <GlassCard className="max-w-2xl w-full">
-            <div className="p-4 md:p-8">
-              <div className="flex justify-between items-center mb-8">
-                <div className="flex space-x-2">
-                  {features.map((_, index) => (
-                    <div
-                      key={index}
-                      className={`h-1.5 rounded-full transition-all duration-300 ${
-                        index === currentSlide
-                          ? "w-8 bg-primary"
-                          : index < currentSlide
-                            ? "w-4 bg-primary/60"
-                            : "w-4 bg-gray-200"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <button
-                  onClick={handleSkip}
-                  className="text-gray-500 hover:text-primary text-sm font-medium transition-colors"
-                >
-                  Bỏ qua
-                </button>
-              </div>
-
-              <div className="relative overflow-hidden" style={{ height: "220px" }}>
-                <AnimatedFeatureSlide feature={features[currentSlide]} isActive={true} />
-              </div>
-
-              <div className="mt-8 flex justify-between">
-                <div className="text-sm text-gray-500">
-                  {currentSlide + 1}/{features.length}
-                </div>
-                <GradientButton onClick={handleNextSlide} className="px-6">
-                  {currentSlide < features.length - 1 ? (
-                    <>
-                      Tiếp theo <ChevronRight className="ml-1 h-4 w-4" />
-                    </>
-                  ) : (
-                    <>
-                      Bắt đầu <ArrowRight className="ml-1 h-4 w-4" />
-                    </>
-                  )}
-                </GradientButton>
-              </div>
+            <p className="text-base md:text-lg text-gray-700 max-w-2xl mx-auto lg:mx-0 mb-8 leading-relaxed">
+              Tận hưởng trải nghiệm sản xuất video hiện đại, tự động hóa từng bước, cá nhân hóa và bảo mật tuyệt đối.<br className="hidden md:inline"/> Chỉ cần ý tưởng, mọi thứ còn lại đã có AI lo!
+            </p>
+            <div className="flex justify-center lg:justify-start">
+              <GradientButton onClick={onStart} className="px-8 py-3 text-lg font-bold shadow-lg hover:scale-105 transition-transform">
+                Bắt đầu ngay
+              </GradientButton>
             </div>
-          </GlassCard>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.5 }}
-            className="mt-8 flex flex-wrap justify-center lg:justify-start gap-4"
-          >
-            <FeatureTag icon={<Sparkles className="h-4 w-4" />} text="5 bước đơn giản" />
-            <FeatureTag icon={<ImageIcon className="h-4 w-4" />} text="Đa dạng nội dung" />
-            <FeatureTag icon={<Mic className="h-4 w-4" />} text="Tiếng Việt tự nhiên" />
           </motion.div>
         </motion.div>
       </div>
     </div>
-  )
-}
-
-function FeatureTag({ icon, text }: { icon: React.ReactNode; text: string }) {
-  return (
-    <motion.div
-      whileHover={{ scale: 1.05 }}
-      className="bg-white/80 backdrop-blur-sm rounded-full px-4 py-2 shadow-sm border border-gray-100 flex items-center gap-2"
-    >
-      <div className="text-primary">{icon}</div>
-      <span className="text-sm font-medium">{text}</span>
-    </motion.div>
-  )
-}
-
-interface AnimatedFeatureSlideProps {
-  feature: {
-    icon: React.ReactNode
-    title: string
-    description: string
-  }
-  isActive: boolean
-}
-
-function AnimatedFeatureSlide({ feature, isActive }: AnimatedFeatureSlideProps) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: 50 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -50 }}
-      transition={{ duration: 0.5 }}
-      className="absolute inset-0 flex flex-col items-start justify-center gap-4 p-4"
-    >
-      <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.2, duration: 0.5 }}
-        className="bg-primary/10 rounded-full p-4 flex items-center justify-center"
-      >
-        {feature.icon}
-      </motion.div>
-
-      <div className="space-y-2">
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-          className="text-xl font-bold gradient-heading"
-        >
-          {feature.title}
-        </motion.h2>
-
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.5 }}
-          className="text-gray-600"
-        >
-          {feature.description}
-        </motion.p>
-      </div>
-    </motion.div>
   )
 }
 
