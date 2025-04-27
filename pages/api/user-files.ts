@@ -37,7 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const user = await verifyToken(req, prisma);
     if (!user) return res.status(401).json({ success: false, error: "Unauthorized" });
     // Admin có thể truy cập mọi file
-    if (user.isAdmin || user.id === userId) {
+    if (user.isAdmin || (typeof userId === "string" && String(user.id) === userId)) {
       const filePath = join(process.cwd(), BASE_DIRS[type], String(user.id), filename);
       try {
         const data = await fs.readFile(filePath);
