@@ -5,6 +5,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import UserStatus from "@/components/UserStatus";
 import { UserStatusProvider } from "@/components/UserStatusContext";
+import ChatbotWidget from "../components/ChatbotWidget";
 
 const beVietnamPro = Be_Vietnam_Pro({
   subsets: ["vietnamese"],
@@ -21,9 +22,9 @@ export const viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Tạo Video Mạng Xã Hội - AI Video Generator",
+  title: "Tạo Video Chuyên Nghiệp Cùng AI",
   description:
-    "Tạo video mạng xã hội chuyên nghiệp chỉ trong vài phút với công nghệ AI tiên tiến. Dễ dàng, nhanh chóng, hiệu quả!",
+    "Tạo video theo quy trình chuyên nghiệp cùng dàn AI chất lượng cao. Sáng tạo - Kỷ luật - Hiệu quả!",
   authors: [{ name: "TDNM" }],
   keywords: [
     "tạo video AI",
@@ -33,15 +34,15 @@ export const metadata: Metadata = {
     "công cụ tạo video",
   ],
   openGraph: {
-    title: "Tạo Video Mạng Xã Hội - AI Video Generator",
+    title: "Tạo Video Chuyên Nghiệp Cùng AI",
     description:
-      "Sản xuất video mạng xã hội nhanh chóng với AI. Tạo video chuyên nghiệp chỉ trong vài phút!",
+      "Tạo video theo quy trình chuyên nghiệp cùng dàn AI chất lượng cao. Sáng tạo - Kỷ luật - Hiệu quả!",
   },
   twitter: {
     card: "summary_large_image",
     title: "Tạo Video Mạng Xã Hội - AI Video Generator",
     description:
-      "Sản xuất video mạng xã hội nhanh chóng với AI. Tạo video chuyên nghiệp chỉ trong vài phút!",
+      "Sản xuất video nhanh chóng với AI. Tạo video chuyên nghiệp chỉ trong vài phút!",
   },
 };
 
@@ -69,6 +70,8 @@ export default function RootLayout({
             {children}
           </ThemeProvider>
         </UserStatusProvider>
+        {/* Chatbot nổi toàn app */}
+        <ChatbotWidget />
       </body>
     </html>
   );

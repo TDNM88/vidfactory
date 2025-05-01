@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import StoryboardTable from './StoryboardTable';
 import { toast } from 'react-hot-toast';
 import Image from 'next/image';
-import { ImageIcon, Mic, Video, Loader2, Edit2, Save, Play, Info } from 'lucide-react';
+import { ImageIcon, Mic, Video, Loader2, Edit2, Save, Play, Info, Share2, Mail, Download, RotateCcw } from 'lucide-react'; // Added Share2, Mail, Download, RotateCcw icons
 import debounce from 'lodash/debounce';
 import Modal from 'react-modal';
 import { toAbsoluteUrl } from '../lib/toAbsoluteUrl';
@@ -236,6 +236,7 @@ const DashboardWorkflow: React.FC = () => {
     }
     setLoading(true, `Đang tạo ảnh minh họa cho phân đoạn ${idx + 1}...`);
     try {
+      // Gọi API backend mới cho Basic: /api/generate-images (proxy tới gradio)
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
       const res = await fetch('/api/generate-images', {
         method: 'POST',
@@ -244,9 +245,13 @@ const DashboardWorkflow: React.FC = () => {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          segmentIdx: idx,
           prompt: segment.script,
-          image_description: segment.image_description,
+          image_base64: segment.image_base64 || undefined,
+          height: platformSizes[sessionData.script.platform || ""]?.height || 768,
+          width: platformSizes[sessionData.script.platform || ""]?.width || 768,
+          seed: 9988,
+          model_id: 'sdxl',
+          segmentIdx: idx
         }),
       });
       const data = await res.json();
@@ -256,8 +261,8 @@ const DashboardWorkflow: React.FC = () => {
       const newSegments = [...sessionData.script.segments];
       newSegments[idx] = {
         ...newSegments[idx],
-        direct_image_url: data.direct_image_url,
-        imageUrl: data.imageUrl,
+        direct_image_url: typeof data.direct_image_url === 'string' ? data.direct_image_url : '',
+        imageUrl: typeof data.imageUrl === 'string' ? data.imageUrl : (typeof data.direct_image_url === 'string' ? data.direct_image_url : ''),
         image_base64: undefined, // Always use URL for state and rendering
       };
       setSessionData((prev) => ({
@@ -300,11 +305,7 @@ const DashboardWorkflow: React.FC = () => {
         throw new Error(data.error || 'Lỗi khi tạo giọng đọc');
       }
       const newSegments = [...sessionData.script.segments];
-      newSegments[idx] = {
-        ...newSegments[idx],
-        voice_url: data.voice_url, // direct static URL for playback
-        voice_path: data.voice_path, // absolute server path for backend
-      };
+      newSegments[idx] = { ...newSegments[idx], voice_url: data.voice_url, voice_path: data.voice_path, };
       setSessionData((prev) => ({
         ...prev,
         script: { ...prev.script, segments: newSegments },
@@ -600,10 +601,11 @@ const DashboardWorkflow: React.FC = () => {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
           body: JSON.stringify({
-            image_base64: base64,
-            segmentIdx: idx,
             prompt: sessionData.script.segments[idx]?.script,
-            image_description: sessionData.script.segments[idx]?.image_description,
+            image_base64: base64,
+            height: platformSizes[sessionData.script.platform || ""]?.height || 1024,
+            width: platformSizes[sessionData.script.platform || ""]?.width || 1024,
+            segmentIdx: idx
           }),
         });
         const data = await res.json();
@@ -646,8 +648,10 @@ const DashboardWorkflow: React.FC = () => {
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
             body: JSON.stringify({
-              segmentIdx: idx,
-              styleSettings: sessionData.styleSettings,
+              prompt: sessionData.script.segments[idx]?.script,
+              image_base64: sessionData.script.segments[idx]?.image_base64,
+              height: platformSizes[sessionData.script.platform || ""]?.height || 1024,
+              width: platformSizes[sessionData.script.platform || ""]?.width || 1024
             }),
           });
           const data = await res.json();
@@ -995,10 +999,15 @@ const DashboardWorkflow: React.FC = () => {
               <button
                 onClick={handleGenerateScript}
                 disabled={isLoading || !sessionData.subject || !sessionData.summary}
-                className="w-full bg-gradient-to-r from-[hsl(160,83%,28%)] to-[hsl(174,84%,50%)] text-white p-3 rounded-lg hover:opacity-90 disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                className="w-full bg-gradient-to-r from-orange-500 via-pink-500 to-[hsl(174,84%,50%)] text-white p-4 rounded-xl text-lg font-bold shadow-lg hover:scale-105 hover:opacity-90 disabled:bg-gray-400 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 mt-4 mb-2"
               >
-                Tạo kịch bản
+                Xác nhận &amp; Tạo kịch bản
               </button>
+              {(!sessionData.subject || !sessionData.summary) && (
+                <div className="text-red-500 text-sm mt-2 text-center">
+                  Vui lòng nhập <b>Chủ đề</b> và <b>Tóm tắt nội dung</b> để tiếp tục!
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1066,7 +1075,7 @@ const DashboardWorkflow: React.FC = () => {
       </button>
       <span className="text-xs text-gray-600">Tạo video</span>
         </div>
-    {/* Nút sửa kịch bản */}
+  {/* Nút sửa kịch bản */}
     <div className="flex flex-col items-center">
       <button className="w-8 h-8 flex items-center justify-center rounded-full bg-yellow-400 text-white mb-1 shadow-lg transform transition-all duration-300 hover:scale-110 hover:shadow-2xl hover:bg-yellow-500 animate-fade-in" disabled>
         <Edit2 className="w-5 h-5" />
@@ -1562,32 +1571,98 @@ const DashboardWorkflow: React.FC = () => {
           </div>
         )}
         {currentStep === 4 && (
-          <div className="bg-white shadow-lg rounded-xl p-6 transform transition-all duration-300">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4">Hoàn tất</h2>
-            <p className="text-lg text-gray-600 mb-6">Video của bạn đã sẵn sàng!</p>
+          <div className="bg-white shadow-xl rounded-xl p-8 max-w-3xl mx-auto my-8 transform transition-all duration-300">
+            <div className="text-center mb-6">
+              <svg className="w-16 h-16 mx-auto mb-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <h2 className="text-3xl font-bold text-gray-800">Video Hoàn Thành!</h2>
+              <p className="text-lg text-gray-600 mt-2">Video của bạn đã được tạo thành công.</p>
+            </div>
+
             {finalVideoUrl && (
-              <div className="flex items-center justify-center mb-6">
-                <video controls src={finalVideoUrl} className="w-full max-w-md rounded-lg" />
+              <div className="mb-8 aspect-video bg-gray-100 rounded-lg overflow-hidden shadow-inner">
+                <video 
+                  controls 
+                  src={finalVideoUrl} 
+                  className="w-full h-full object-contain" 
+                  aria-label="Final generated video"
+                />
               </div>
             )}
-            <div className="flex items-center justify-between">
-              <button
-                onClick={handleCleanup}
-                disabled={isLoading || (!finalVideoUrl && !sessionData.script.segments.length)}
-                className="w-full bg-[hsl(160,83%,28%)] text-white px-6 py-3 rounded-lg hover:bg-[hsl(160,84%,39%)] transition-all duration-200"
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+              {/* Download Button */}
+              {finalVideoUrl && (
+                <a
+                  href={finalVideoUrl}
+                  download={`video_${sessionData.session_id || Date.now()}.mp4`} // Suggest a filename
+                  className="flex items-center justify-center w-full bg-blue-600 text-white px-5 py-3 rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium text-center"
+                  title="Tải video về máy"
+                >
+                  <Download className="w-5 h-5 mr-2" />
+                  Tải Xuống
+                </a>
+              )}
+
+              {/* Share Button (Web Share API) */}
+              {finalVideoUrl && navigator.share && (
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(finalVideoUrl);
+                      const blob = await response.blob();
+                      const file = new File([blob], `video_${sessionData.session_id || Date.now()}.mp4`, { type: blob.type });
+
+                      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                          files: [file],
+                          title: sessionData.subject || 'Video của tôi',
+                          text: `Hãy xem video tôi vừa tạo: ${sessionData.subject || ''}`,
+                        });
+                        toast.success('Đã mở hộp thoại chia sẻ!');
+                      } else {
+                        toast.error('Không thể chia sẻ tệp video này.');
+                      }
+                    } catch (error) {
+                      console.error('Lỗi khi chia sẻ:', error);
+                      toast.error('Không thể chia sẻ video.');
+                    }
+                  }}
+                  className="flex items-center justify-center w-full bg-green-500 text-white px-5 py-3 rounded-lg hover:bg-green-600 transition-all duration-200 font-medium text-center"
+                  title="Chia sẻ video"
+                >
+                  <Share2 className="w-5 h-5 mr-2" />
+                  Chia Sẻ
+                </button>
+              )}
+
+              {/* Email Button (mailto) */}
+              {finalVideoUrl && (
+                 <a
+                  href={`mailto:?subject=Video%20tuyệt%20vời:%20${encodeURIComponent(sessionData.subject || 'Video được tạo bởi AI')}&body=Chào%20bạn,%0A%0ATôi%20muốn%20chia%20sẻ%20video%20này%20với%20bạn.%0A%0A(Hãy%20tải%20video%20về%20và%20đính%20kèm%20vào%20email%20này%20nhé!)`}
+                  className="flex items-center justify-center w-full bg-orange-500 text-white px-5 py-3 rounded-lg hover:bg-orange-600 transition-all duration-200 font-medium text-center"
+                  title="Gửi video qua email (cần đính kèm thủ công)"
+                  target="_blank" rel="noopener noreferrer" // Mở trong tab mới
+                 >
+                   <Mail className="w-5 h-5 mr-2" />
+                   Gửi Email
+                 </a>
+              )}
+            </div>
+
+            {/* Start Over Button */}
+            <div className="text-center">
+               <button
+                onClick={handleCleanup} // Assuming handleCleanup resets the state
+                disabled={isLoading}
+                className="inline-flex items-center justify-center w-full sm:w-auto bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition-all duration-200 font-medium text-center"
+                title="Tạo video mới"
               >
-                Bắt Đầu Lại
-              </button>
-              <button
-                onClick={() => setCurrentStep(3)}
-                className="text-[hsl(160,83%,28%)] hover:text-[hsl(174,84%,50%)] font-medium flex items-center"
-              >
-                <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                </svg>
-                Quay Lại
+                <RotateCcw className="w-5 h-5 mr-2" />
+                Tạo Video Mới
               </button>
             </div>
+
           </div>
         )}
         {isLoading && (

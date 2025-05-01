@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 /**
- * Hook lấy URL bảo mật cho video/audio từ API user-files, tự động thêm token.
+ * H ook lấy URL bảo mật cho video/audio từ API user-files, tự động thêm token.
  * @param url Đường dẫn API user-files (ví dụ: /api/user-files?type=generated-videos&filename=abc.mp4&userId=4)
  * @returns { url, loading, error }
  */

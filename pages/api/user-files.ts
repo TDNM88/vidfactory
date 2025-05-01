@@ -33,6 +33,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(404).json({ success: false, error: "Not found" });
       }
     }
+    // Nếu là GET/HEAD và type=generated-videos thì cho phép public (không cần xác thực)
+    if ((req.method === "GET" || req.method === "HEAD") && type === "generated-videos") {
+      const filePath = join(process.cwd(), BASE_DIRS[type], String(userId), filename);
+      try {
+        const data = await fs.readFile(filePath);
+        res.setHeader("Content-Type", getMimeType(filename));
+        return res.status(200).send(data);
+      } catch {
+        return res.status(404).json({ success: false, error: "Not found" });
+      }
+    }
     // Các loại khác: yêu cầu xác thực và đúng user
     const user = await verifyToken(req, prisma);
     if (!user) return res.status(401).json({ success: false, error: "Unauthorized" });

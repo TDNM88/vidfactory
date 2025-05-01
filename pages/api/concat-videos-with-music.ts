@@ -46,9 +46,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     console.log("[API] videoFiles received:", videoFiles);
     const videoPaths = await Promise.all(
       videoFiles.map(async (file: string) => {
-        // Remove leading slash or backslash to avoid resolve ignoring 'public'
-        const safeFile = file.replace(/^[/\\]+/, '');
-        const filePath = resolve(process.cwd(), "public", safeFile);
+        let filePath = '';
+        // Nếu là URL API dạng /api/user-files?type=generated-videos&filename=...&userId=...
+        if (file.startsWith('/api/user-files')) {
+          const url = new URL('http://localhost' + file); // base URL giả để parse
+          const type = url.searchParams.get('type');
+          const filename = url.searchParams.get('filename');
+          const userId = url.searchParams.get('userId');
+          if (type === 'generated-videos' && filename && userId) {
+            filePath = resolve(process.cwd(), 'public', 'generated-videos', String(userId), filename);
+          } else {
+            throw new Error(`Invalid video URL params: ${file}`);
+          }
+        } else {
+          // Remove leading slash or backslash to avoid resolve ignoring 'public'
+          const safeFile = file.replace(/^[/\\]+/, '');
+          filePath = resolve(process.cwd(), 'public', safeFile);
+        }
         if (!existsSync(filePath)) {
           throw new Error(`Video file not found: ${file}`);
         }
@@ -89,15 +103,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     let finalVideo = outputVideo;
     let videoUrl = `/temp-videos/${outputVideo.split(/[\\/]/).pop()}`;
     if (musicFile && musicFile !== "none") {
-      // Support music files in public/music as well
-let musicPath = resolve(process.cwd(), "public", musicFile).replace(/\\/g, "/");
-if (!existsSync(musicPath)) {
-  // Try public/music/<musicFile> if not found in public root
-  musicPath = resolve(process.cwd(), "public", "music", musicFile).replace(/\\/g, "/");
-  if (!existsSync(musicPath)) {
-    throw new Error(`Music file not found: ${musicFile}`);
-  }
-}
+      // Support music files in public/musics
+      let musicPath = resolve(process.cwd(), "public", "musics", musicFile).replace(/\\/g, "/");
       if (!existsSync(musicPath)) {
         throw new Error(`Music file not found: ${musicFile}`);
       }

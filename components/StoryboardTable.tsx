@@ -41,7 +41,7 @@ interface StoryboardTableProps {
   tempInputs?: { [key: string]: string };
   onTempInputChange?: (key: string, value: string) => void;
   onSaveEditing?: (idx: number) => void;
-  onGenerateImageForSegment?: (idx: number) => void;
+  onGenerateImageForSegment?: (idx: number, style: 'realistic' | 'anime') => void;
   onGenerateVoiceForSegment?: (idx: number, voiceApiType: "f5-tts" | "vixtts") => void;
   onCreateSegmentVideo?: (idx: number, type: "basic" | "premium" | "super") => void;
   onRemoveImage?: (idx: number) => void;
@@ -77,6 +77,8 @@ const StoryboardTable: React.FC<StoryboardTableProps> = ({
   onAddSegment,
   onRemoveSegment,
 }) => {
+  // Debug: log dữ liệu segments truyền vào bảng desktop
+  console.log('segments desktop', segments);
   return (
     <div className="hidden lg:block overflow-x-auto">
       <Table className="min-w-full text-sm">
@@ -257,14 +259,17 @@ const StoryboardTable: React.FC<StoryboardTableProps> = ({
                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#ef4444"/><path d="M8 12h8" stroke="#fff" strokeWidth="2" strokeLinecap="round"/></svg>
                     </button>
                     {/* Tạo ảnh minh họa */}
-                    <button
-                      onClick={() => onGenerateImageForSegment && onGenerateImageForSegment(idx)}
-                      disabled={isLoading || !segment.script}
-                      title={`Tạo ảnh minh họa cho phân đoạn ${idx + 1}`}
-                      className="inline-flex items-center justify-center w-10 h-10 rounded-lg border border-gray-200 bg-[hsl(160,83%,28%)] text-white hover:bg-[hsl(160,84%,39%)] disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                    >
-                      <ImageIcon className="w-5 h-5" />
-                    </button>
+                    <div className="flex gap-2">
+  <button
+    onClick={() => onGenerateImageForSegment && onGenerateImageForSegment(idx, 'realistic')}
+    disabled={isLoading || !segment.script}
+    title={`Tạo ảnh minh họa cho phân đoạn ${idx + 1}`}
+    className="inline-flex items-center justify-center w-10 h-10 rounded-lg border border-gray-200 bg-[hsl(160,83%,28%)] text-white hover:bg-[hsl(160,84%,39%)] disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition"
+  >
+    <ImageIcon className="w-5 h-5" />
+    <span className="sr-only">Tạo ảnh</span>
+  </button>
+</div>
                     {/* Tạo giọng đọc */}
                     <div className="flex gap-1">
                       <button
@@ -363,7 +368,7 @@ function SecureVideoThumb({ url, poster }: { url: string, poster: string }) {
 
 // Component preview ảnh bảo mật
 function SecureImagePreview({ url, fallback, idx, onRemoveImage, editable }: { url?: string, fallback?: string, idx: number, onRemoveImage?: (idx: number) => void, editable: boolean }) {
-  const isSecure = url && url.startsWith('/api/user-files');
+  const isSecure = typeof url === 'string' && url.startsWith('/api/user-files');
   const { url: imgUrl, blob, loading, error } = useSecureMedia(isSecure ? url! : null);
   const handleDownload = () => {
     if (!blob && !url && !fallback) return;
@@ -380,16 +385,16 @@ function SecureImagePreview({ url, fallback, idx, onRemoveImage, editable }: { u
     }
   };
   return (
-    <div className="relative w-[120px] h-[120px] rounded-xl border border-gray-200 overflow-hidden bg-gray-50 group">
+    <div className="relative w-[220px] h-[220px] rounded-2xl border-2 border-sky-400 overflow-hidden bg-white group shadow-lg">
       {loading ? (
         <div className="w-full h-full flex items-center justify-center text-sky-500">Đang tải...</div>
       ) : error ? (
         <div className="w-full h-full flex items-center justify-center text-red-500">Lỗi ảnh</div>
       ) : (
         <img
-          src={imgUrl || fallback || "/placeholder.png"}
+          src={imgUrl || url || fallback || "/placeholder.png"}
           alt={`Ảnh ${idx + 1}`}
-          className="object-cover w-full h-full"
+          className="object-cover w-full h-full transition-transform duration-200 group-hover:scale-105"
           loading="lazy"
         />
       )}

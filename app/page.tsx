@@ -9,6 +9,8 @@ import { OutlineButton } from "@/components/ui-custom/outline-button";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
 import DashboardWorkflow from "@/components/dashboardworkflow";
+import DashboardWorkflowBasic from '@/components/dashboardworkflow-basic';
+import Link from 'next/link';
 
 export default function Home() {
   const [showIntro, setShowIntro] = useState(true);
@@ -86,7 +88,7 @@ export default function Home() {
                   transition={{ duration: 0.5 }}
                   aria-label="Tạo Video Chuyên Nghiệp Cùng AI"
                 >
-                  Tạo Video Chuyên Nghiệp Cùng AI
+                  Làm Phim Đỉnh Cao Với Sức Mạnh AI
                 </motion.h1>
                 <motion.p
                   className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto responsive-text-base leading-relaxed"
@@ -94,29 +96,70 @@ export default function Home() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.2 }}
                 >
-                  Sản xuất mọi loại hình video chỉ trong vài phút với công nghệ AI tiên tiến.
-                  Dễ dàng, nhanh chóng, hiệu quả!
+                  Đột phá sáng tạo với nền tảng dựng video tự động bằng trí tuệ nhân tạo.<br />
+                  Chỉ cần ý tưởng, mọi thứ còn lại hãy để AI lo!<br />
+                  Toàn quyền kiểm soát nhờ bảng điều khiển chuyên nghiệp <br />
                 </motion.p>
                 <motion.div
+                  className="flex flex-col items-center mt-6"
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.4 }}
                 >
-                  <GradientButton
-                    className="mt-6 px-6 py-3 text-lg pulse-button shadow-lg hover:shadow-xl"
-                    data-tip="Bắt đầu tạo video ngay bây giờ!"
-                    onClick={handleCreateVideo}
-                    aria-label="Tạo Video Ngay"
-                  >
-                    Tạo Video Ngay
-                  </GradientButton>
-                  <DashboardWorkflow/>
+                  <p className="text-sm text-gray-500 mb-2">Ứng dụng được phát triển bởi TDNM</p>
+                  <div className="flex space-x-2">
+                    <Link href="/login" passHref>
+                      <OutlineButton size="sm">Đăng nhập</OutlineButton>
+                    </Link>
+                    <GradientButton onClick={handleStartApp} size="sm">Bắt đầu</GradientButton>
+                  </div>
                 </motion.div>
               </motion.div>
+              <DashboardWorkflow />
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-10 mt-auto">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+              <h3 className="text-xl font-bold mb-4 text-emerald-400">AI Video Creator</h3>
+              <p className="text-gray-400 mb-4">Biến ý tưởng thành video chuyên nghiệp chỉ trong vài phút với sức mạnh của trí tuệ nhân tạo.</p>
+              <p className="text-gray-500 text-sm">Phát triển bởi TDNM</p>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-4 text-emerald-400">Sản phẩm</h3>
+              <ul className="space-y-2">
+                <li><Link href="/features" className="text-gray-400 hover:text-emerald-300">Tính năng</Link></li>
+                <li><Link href="/pricing" className="text-gray-400 hover:text-emerald-300">Bảng giá</Link></li>
+                <li><Link href="/examples" className="text-gray-400 hover:text-emerald-300">Ví dụ</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-4 text-emerald-400">Tài nguyên</h3>
+              <ul className="space-y-2">
+                <li><Link href="/tutorials" className="text-gray-400 hover:text-emerald-300">Hướng dẫn</Link></li>
+                <li><Link href="/blog" className="text-gray-400 hover:text-emerald-300">Blog</Link></li>
+                <li><Link href="/community" className="text-gray-400 hover:text-emerald-300">Cộng đồng</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-4 text-emerald-400">Liên hệ</h3>
+              <ul className="space-y-2">
+                <li><Link href="/support" className="text-gray-400 hover:text-emerald-300">Hỗ trợ</Link></li>
+                <li><Link href="/contact" className="text-gray-400 hover:text-emerald-300">Liên hệ với chúng tôi</Link></li>
+                <li><Link href="/faq" className="text-gray-400 hover:text-emerald-300">FAQ</Link></li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-gray-800 mt-10 pt-6 text-center text-gray-500 text-sm">
+            <p>&copy; {new Date().getFullYear()} AI Video Creator - TDNM. Tất cả các quyền được bảo lưu.</p>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

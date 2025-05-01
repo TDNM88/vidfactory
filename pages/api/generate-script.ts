@@ -16,7 +16,7 @@ async function callOpenRouter(prompt: string, apiKey: string, retries = 3) {
           "X-Title": "Social Video Generator",
         },
         body: JSON.stringify({
-          model: "meta-llama/llama-4-scout:free",
+          model: "meta-llama/llama-4-maverick:free",
           messages: [
             { role: "system", content: "Bạn là một chuyên gia viết kịch bản video cho mạng xã hội." },
             { role: "user", content: prompt },
@@ -48,23 +48,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { subject, summary, duration, platform, styleSettings } = req.body;
+    const { subject, summary, duration, platform } = req.body;
 
     // Validate inputs
     if (!subject || !summary) {
       return res.status(400).json({ success: false, error: "Chủ đề và tóm tắt nội dung là bắt buộc" });
-    }
-    if (!styleSettings || !styleSettings.style) {
-      return res.status(400).json({ success: false, error: "styleSettings là bắt buộc" });
-    }
-    if (!validStyles.includes(styleSettings.style)) {
-      return res.status(400).json({ success: false, error: `Phong cách không hợp lệ: ${styleSettings.style}` });
-    }
-    if (styleSettings.character.length > 100 || styleSettings.scene.length > 100) {
-      return res.status(400).json({
-        success: false,
-        error: "Mô tả nhân vật hoặc bối cảnh vượt quá 100 ký tự",
-      });
     }
 
     const session_id = crypto?.randomUUID?.() || Math.random().toString(36).substring(2);
@@ -73,13 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ success: false, error: "OpenRouter API key không được cấu hình" });
     }
 
-    // Build prompt with dynamic styleSettings
-    const stylePrompt = `
-      - **Phong cách**: Tất cả ảnh phải theo phong cách ${styleSettings.style} với màu sắc sống động, ánh sáng mềm mại, và bố cục cân đối.
-      - **Nhân vật**: ${styleSettings.character || "Nếu có nhân vật, sử dụng một nhân vật chính nhất quán qua các phân đoạn (mô tả rõ: giới tính, độ tuổi, trang phục, biểu cảm). Nếu không có nhân vật, tập trung vào bối cảnh và đạo cụ."}
-      - **Bối cảnh**: ${styleSettings.scene || "Mô tả chi tiết bối cảnh phù hợp với nội dung lời thoại nhưng không lặp lại lời thoại (ví dụ: quán cà phê ấm cúng, công viên xanh mát, văn phòng hiện đại)."}
-    `;
-
+    // Build prompt without style, character, or scene
     const prompt = `
       Bạn là một chuyên gia viết kịch bản video chuyên nghiệp cho mạng xã hội ${platform}. Hãy tạo một kịch bản video hấp dẫn với chủ đề: ${subject}.
       Tóm tắt nội dung: ${summary}
@@ -89,10 +71,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       - Kịch bản cần chia thành các phân đoạn logic, mỗi phân đoạn gồm:
         1. **Lời thoại**: Ngắn gọn, truyền cảm hứng, tự nhiên, phù hợp với người xem trên ${platform}, và khớp với thời lượng tổng thể.
         2. **Mô tả ảnh minh họa**: 
-           ${stylePrompt}
            - **Chi tiết**: Mô tả rõ ràng về màu sắc chủ đạo, cảm xúc, ánh sáng, và góc quay (ví dụ: góc cận cảnh, góc rộng). Tránh chung chung, tạo hình ảnh sống động, dễ hình dung.
            - **Không sử dụng tiền tố**: Mô tả ảnh không được bắt đầu bằng các cụm từ như "Mô tả ảnh:", "Ảnh:", "Mô tả:", "Image description:". Chỉ ghi trực tiếp nội dung mô tả.
-      - Đảm bảo mô tả ảnh của các phân đoạn có sự liên kết về phong cách và nhân vật (nếu có) để tạo cảm giác đồng bộ cho video.
+           - **Bổ sung bản dịch tiếng Anh**: Trả về thêm trường image_description_en là bản dịch tiếng Anh tự nhiên, không chú thích, không tiền tố, chỉ nội dung mô tả ảnh.
+      - Đảm bảo mô tả ảnh của các phân đoạn có sự liên kết để tạo cảm giác đồng bộ cho video.
 
       **Định dạng kết quả**:
       Trả về JSON với cấu trúc sau:
@@ -101,7 +83,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         "segments": [
           {
             "script": "Lời thoại phân đoạn 1",
-            "image_description": "Bối cảnh chi tiết theo phong cách ${styleSettings.style}, nhân vật nhất quán (nếu có)"
+            "image_description": "Bối cảnh chi tiết cho phân đoạn (tiếng Việt)",
+            "image_description_en": "Mô tả ảnh tiếng Anh cho phân đoạn"
           },
           ...
         ]
@@ -133,8 +116,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       scriptData.segments = scriptData.segments.map((segment: any) => ({
         ...segment,
         image_description: segment.image_description
-          .replace(/^(Mô tả ảnh:|Ảnh:|Mô tả:|Image description:)\s*/i, '')
-          .trim(),
+          ? segment.image_description.replace(/^(Mô tả ảnh:|Ảnh:|Mô tả:|Image description:)\s*/i, '').trim() : '',
+        image_description_en: segment.image_description_en
+          ? segment.image_description_en.replace(/^(Image description:|Description:|Mô tả ảnh:|Ảnh:|Mô tả:)\s*/i, '').trim() : '',
       }));
     } catch (error) {
       console.error("Error parsing JSON from LLM response:", error, "Raw text:", text);

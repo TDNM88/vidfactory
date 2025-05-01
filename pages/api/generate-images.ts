@@ -5,6 +5,11 @@ import { join } from "path";
 import { tmpdir } from "os";
 import sharp from "sharp";
 import formidable from "formidable";
+import mime from "mime";
+import { PrismaClient } from '@prisma/client';
+import { verifyToken } from '../../lib/auth';
+
+const prisma = new PrismaClient();
 
 // Danh sách phong cách hợp lệ
 const validStyles = ["cinematic", "anime", "flat lay", "realistic"];
@@ -16,37 +21,100 @@ interface RequestBody {
   styleSettings?: { style: string; character: string; scene: string };
   image_base64?: string;
   image_description?: string;
+  // Các tham số cũ (không còn sử dụng nhưng vẫn giữ để tương thích ngược)
+  height?: number;
+  width?: number;
+  seed?: number;
+  model_id?: string; // Bỏ qua tham số này, luôn sử dụng Gemini 2.0 Flash
 }
 
-// Utility function to generate images with retry logic
-async function generateWithRetry(ai: GoogleGenAI, model: string, prompt: string, retries = 5) {
+// Hàm tạo ảnh sử dụng Gemini 2.0 Flash theo đúng cấu trúc của Google
+async function generateImageWithGemini(prompt: string, apiKey: string, retries = 3) {
+  // Khởi tạo Google GenAI với API key
+  const ai = new GoogleGenAI({
+    apiKey: apiKey,
+  });
+  
+  // Cấu hình chính xác như trong ví dụ
+  const config = {
+    responseModalities: [
+      'image',
+      'text',
+    ],
+    responseMimeType: 'text/plain',
+    temperature: 1.0,
+    topP: 0.95,
+    topK: 40,
+    maxOutputTokens: 8192,
+  };
+  
+  // Sử dụng đúng model như trong ví dụ
+  const model = 'gemini-2.0-flash-exp-image-generation'; // Tên model chính xác
+  
+  // Thử lại nếu có lỗi
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const response = await ai.models.generateContent({
-        model,
-        contents: prompt,
-        config: {
-          responseModalities: ["Text", "Image"],
+      console.log(`Attempt ${attempt}: Generating image with prompt: ${prompt}`);
+      
+      // Cấu trúc nội dung đúng như ví dụ
+      const contents = [
+        {
+          role: 'user',
+          parts: [
+            {
+              text: prompt,
+            },
+          ],
         },
+      ];
+      
+      // Sử dụng generateContentStream như trong ví dụ
+      const response = await ai.models.generateContentStream({
+        model,
+        config,
+        contents,
       });
-      return response;
-    } catch (error: any) {
-      const retryableErrors = ["500 Internal Server Error", "429 Too Many Requests", "503 Service Unavailable"];
-      if (retryableErrors.some((err) => error.message.includes(err)) && attempt < retries) {
-        console.warn(`Attempt ${attempt} failed with ${error.message}, retrying...`);
-        await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
-        continue;
+      
+      // Xử lý từng chunk của stream
+      for await (const chunk of response) {
+        if (!chunk.candidates || !chunk.candidates[0].content || !chunk.candidates[0].content.parts) {
+          continue;
+        }
+        
+        // Kiểm tra nếu chunk chứa dữ liệu ảnh
+        if (chunk.candidates[0].content.parts[0].inlineData) {
+          const inlineData = chunk.candidates[0].content.parts[0].inlineData;
+          if (inlineData.mimeType?.startsWith('image/') && inlineData.data) {
+            console.log('Image data received successfully');
+            return inlineData;
+          }
+        } else if (chunk.text) {
+          // Log text response nếu có
+          console.log('Text response:', chunk.text);
+        }
       }
-      throw new Error(`Failed to generate image after ${attempt} attempts: ${error.message}`);
+      
+      // Nếu không tìm thấy dữ liệu ảnh trong response
+      console.error('No image data found in the response');
+      if (attempt < retries) {
+        console.log(`Retrying in ${1000 * attempt}ms...`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
+    } catch (error: any) {
+      console.error(`Error in attempt ${attempt}:`, error.message || error);
+      if (attempt < retries) {
+        console.log(`Retrying in ${1000 * attempt}ms...`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      } else {
+        throw new Error(`Failed to generate image after ${retries} attempts: ${error.message}`);
+      }
     }
   }
+  
+  return null;
 }
 
 // Main API handler
-import { PrismaClient } from '@prisma/client';
-import { verifyToken } from '../../lib/auth';
-
-const prisma = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -171,9 +239,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const staticImageUrl = `/generated-images/${userId}/${fileName}`;
 
     // Build style prompt dynamically
-    // Không còn setup stylePrompt cho nhân vật, bối cảnh
-let descriptionPrompt = imageDescription ? `Mô tả ảnh: ${imageDescription}.` : "";
-let stylePrompt = styleSettings && styleSettings.style ? `Phong cách: ${styleSettings.style}.` : "";
+    let descriptionPrompt = imageDescription ? `Mô tả ảnh: ${imageDescription}.` : "";
+    let stylePrompt = styleSettings && styleSettings.style ? `Phong cách: ${styleSettings.style}.` : "";
+    
+    // Thêm mô tả nhân vật và bối cảnh nếu có
+    let characterPrompt = styleSettings && styleSettings.character ? `Nhân vật: ${styleSettings.character}.` : "";
+    let scenePrompt = styleSettings && styleSettings.scene ? `Bối cảnh: ${styleSettings.scene}.` : "";
 
     // Process request
     let buffer: Buffer;
@@ -209,46 +280,90 @@ let stylePrompt = styleSettings && styleSettings.style ? `Phong cách: ${styleSe
         console.error("Image processing error:", error);
         return res.status(500).json({ success: false, error: "Failed to process uploaded image" });
       }
-    } else if (prompt && apiKey) {
+    } else if (prompt) {
       try {
-        const enhancedPrompt = `${descriptionPrompt} ${stylePrompt}`.trim();
-        const ai = new GoogleGenAI({ apiKey });
-        const model = "gemini-2.0-flash-exp-image-generation";
-        const response = await generateWithRetry(ai, model, enhancedPrompt);
-        if (!response || !response.candidates || response.candidates.length === 0) {
-          return res.status(500).json({ success: false, error: "No candidates data received from API" });
+        // Sử dụng Google GenAI để tạo ảnh
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+          return res.status(500).json({ success: false, error: "Missing GEMINI_API_KEY" });
         }
-        const candidate = response.candidates[0];
-        if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
-          return res.status(500).json({ success: false, error: "No content or parts data in response" });
+
+        // Chuẩn bị prompt cho Google GenAI
+        const fullPrompt = [
+          prompt,
+          descriptionPrompt,
+          stylePrompt,
+          characterPrompt,
+          scenePrompt
+        ].filter(Boolean).join("\n");
+        
+        console.log("Generating image with prompt:", fullPrompt);
+
+        // Gọi API Gemini 2.0 Flash để tạo ảnh
+        console.log(`Generating image with prompt: ${fullPrompt}`);
+        
+        // Bỏ qua model_id từ frontend, luôn sử dụng model chính xác
+        console.log("Using model: gemini-2.0-flash-exp-image-generation (ignoring any model_id from frontend)");
+        
+        const imageData = await generateImageWithGemini(fullPrompt, apiKey);
+        
+        if (!imageData) {
+          return res.status(500).json({ 
+            success: false, 
+            error: "Failed to generate image with Gemini 2.0 Flash" 
+          });
         }
-        const parts = candidate.content.parts;
-        const imagePart = parts.find((part: any) => part.inlineData);
-        if (!imagePart || !imagePart.inlineData) {
-          return res.status(500).json({ success: false, error: "No image data found in response" });
+        
+        // Xử lý kết quả từ Google GenAI
+        if (!imageData.mimeType || !imageData.data) {
+          console.error("Invalid image data structure:", JSON.stringify(imageData));
+          return res.status(500).json({ 
+            success: false, 
+            error: "Invalid image data returned from Gemini API" 
+          });
         }
-        const imageData = imagePart.inlineData.data;
-        if (typeof imageData !== "string") {
-          return res.status(500).json({ success: false, error: "Image data is not a valid string" });
+        
+        // Xử lý dữ liệu ảnh
+        let imageBuffer: Buffer;
+        try {
+          // Chuyển đổi dữ liệu base64 thành buffer
+          imageBuffer = Buffer.from(imageData.data, "base64");
+          
+          // Lấy phần mở rộng file từ MIME type
+          const fileExtension = mime.getExtension(imageData.mimeType);
+          if (!fileExtension) {
+            console.warn(`Unknown mime type: ${imageData.mimeType}, defaulting to png`);
+          }
+          
+          console.log(`Image generated successfully with MIME type: ${imageData.mimeType}`);
+        } catch (error: any) {
+          console.error("Error processing image data:", error);
+          return res.status(500).json({ 
+            success: false, 
+            error: `Error processing image data: ${error.message}` 
+          });
         }
-        buffer = Buffer.from(imageData, "base64");
-        buffer = await sharp(buffer)
-          .resize(512, 512, { fit: "fill" })
-          .png()
-          .toBuffer();
-        await fs.writeFile(filePath, buffer);
+        
+        try {
+          // imageBuffer đã được định nghĩa ở trên
+          await fs.writeFile(filePath, imageBuffer);
+        } catch (error: any) {
+          console.error("Error saving image file:", error);
+          return res.status(500).json({ success: false, error: `Error saving image: ${error.message}` });
+        }
+
+        // Trả về URL của ảnh
         return res.status(200).json({
           success: true,
           imageUrl: staticImageUrl,
           direct_image_url: staticImageUrl,
+          image_path: filePath,
           index,
         });
       } catch (error: any) {
-        console.error("Gemini API error:", error);
-        return res.status(500).json({ success: false, error: "Failed to generate image with Gemini API" });
+        console.error("Google GenAI error:", error);
+        return res.status(500).json({ success: false, error: error.message || "Failed to generate image with Google GenAI" });
       }
-    } else {
-      return res.status(400).json({ success: false, error: "Must provide prompt or file" });
     }
   } catch (error: any) {
     console.error("Error processing image:", error);
@@ -257,7 +372,7 @@ let stylePrompt = styleSettings && styleSettings.style ? `Phong cách: ${styleSe
 }
 
 export const config = {
-  api: {
-    bodyParser: false,
-  },
+api: {
+bodyParser: false,
+},
 };

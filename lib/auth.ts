@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import { NextApiRequest } from 'next';
+import type { AuthOptions } from "next-auth";
 
 const JWT_SECRET = process.env.JWT_SECRET || 'changeme';
 
@@ -22,3 +23,20 @@ export async function verifyAdmin(req: NextApiRequest, prisma: PrismaClient) {
   if (!user || !user.isAdmin) return null;
   return user;
 }
+
+export const authOptions: AuthOptions = {
+  providers: [
+    // ... cấu hình providers ...
+  ],
+  callbacks: {
+    redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
+      return url.startsWith(baseUrl) ? url : baseUrl;
+    }
+  },
+  pages: {
+    signIn: '/auth/signin', // Trang đăng nhập
+    signOut: '/auth/signout', // Trang đăng xuất
+    error: '/auth/error', // Trang lỗi
+    newUser: '/onboarding' // Trang cho user mới
+  }
+};

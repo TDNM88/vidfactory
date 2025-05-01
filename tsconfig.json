@@ -25,9 +25,11 @@
     "paths": {
       "@/*": [
         "./*"
-      ]
-    }
-  },
+      ],
+      "@/workflows/basic/*": ["./app/dashboard/workflows/basic/*"]
+    },
+    "baseUrl": "."
+   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
