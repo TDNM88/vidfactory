@@ -4,8 +4,16 @@ import { motion } from "framer-motion"
 
 export function DecorativeBackground() {
   return (
-    <div className="fixed inset-0 z-0 overflow-hidden">
-      {/* Main gradient background */}
+    <div 
+      className="fixed inset-0 z-0 overflow-hidden"
+      style={{
+        backgroundImage: 'url("/images/bg.png")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
+      {/* Main gradient overlays - reduced opacity to show bg image */}
       <div className="absolute -top-[40%] -right-[10%] w-[70%] h-[70%] bg-primary/5 rounded-full blur-3xl" />
       <div className="absolute -bottom-[40%] -left-[10%] w-[70%] h-[70%] bg-primary/5 rounded-full blur-3xl" />
 
@@ -81,4 +89,3 @@ export function DecorativeBackground() {
     </div>
   )
 }
-

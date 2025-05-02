@@ -6,7 +6,6 @@ import { motion } from "framer-motion"
 import { GradientButton } from "./ui-custom/gradient-button"
 import { Sparkles, ImageIcon, Mic, Video, CheckCircle, ArrowRight, Play, Wand2 } from "lucide-react"
 import Link from "next/link";
-import { workflowRoutes } from "@/app/dashboard/workflows/routes";
 
 interface IntroScreenProps {
   onStart: () => void
@@ -115,9 +114,9 @@ export function IntroScreen({ onStart }: IntroScreenProps) {
             className="text-center lg:text-left mb-10 mt-8 lg:mt-16 z-30 relative"
           >
             <motion.h1
-              className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-5 text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 drop-shadow-lg relative"
+              className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-5 text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 drop-shadow-lg relative whitespace-nowrap"
             >
-              Tạo Video AI Chuyên Nghiệp
+              Xưởng Phim AI
               <span className="block absolute left-1/2 -bottom-1 w-2/3 -translate-x-1/2 pointer-events-none">
                 <svg height="10" width="100%" viewBox="0 0 200 10" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M2 8 Q 40 2 70 8 Q 100 14 130 8 Q 160 2 198 8" stroke="#10b981" strokeWidth="3" fill="none" strokeLinecap="round"/>
@@ -132,11 +131,6 @@ export function IntroScreen({ onStart }: IntroScreenProps) {
               với khả năng tùy chỉnh cao và giao diện trực quan.<br className="hidden md:inline"/> 
               Biến ý tưởng thành video chất lượng cao chỉ trong vài phút!
             </p>
-            <div className="flex justify-center lg:justify-start">
-              <GradientButton onClick={onStart} className="px-8 py-3 text-lg font-bold shadow-lg hover:scale-105 transition-transform">
-                Bắt đầu ngay
-              </GradientButton>
-            </div>
           </motion.div>
         </motion.div>
       </div>
@@ -185,7 +179,7 @@ export function IntroScreen({ onStart }: IntroScreenProps) {
           ))}
         </div>
         
-        {/* Phần Premium được tách riêng để nổi bật */}
+        {/* Phần Super được tách riêng để nổi bật */}
         <motion.div 
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -197,9 +191,9 @@ export function IntroScreen({ onStart }: IntroScreenProps) {
           </span>
           <div className="flex items-center mb-3">
             <span className="text-3xl mr-3 text-purple-500">💎</span>
-            <h3 className="text-2xl font-bold text-gray-800">Premium</h3>
+            <h3 className="text-2xl font-bold text-gray-800">Super</h3>
           </div>
-          <p className="text-gray-600 mb-4">Mở khóa toàn bộ tiềm năng AI với các tính năng cao cấp và hỗ trợ tận tình.</p>
+          <p className="text-gray-600 mb-4">Mở khóa toàn bộ tiềm năng sáng tạo của AI với các tính năng cao cấp để tạo ra những sản phẩm ấn tượng nhất.</p>
           <motion.div 
             className="text-sm text-purple-600 font-medium cursor-pointer hover:underline"
             animate={{ opacity: [0.7, 1, 0.7] }}
@@ -230,76 +224,57 @@ export function IntroScreen({ onStart }: IntroScreenProps) {
               <Play className="h-8 w-8 text-emerald-600" />
             </motion.div>
           </div>
-          {/* Placeholder for video - sẽ thay thế bằng video thật sau */}
+          {/* Nhúng link video */}
+          <iframe className="absolute inset-0 w-full h-full" src="https://www.youtube.com/embed/D73Z4YPNRHI?si=0_5a-TW9aujMpir4&autoplay=1" title="Video giới thiệu AI" allowFullScreen></iframe>
           <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-teal-500/20"></div>
         </div>
         <p className="text-center text-gray-600 mt-4">Xem cách AI biến ý tưởng thành video ấn tượng chỉ trong vài phút.</p>
       </motion.div>
       
-      {/* Thêm phần đánh giá từ người dùng hoặc đối tác */}
-      <motion.div 
-        initial={{ opacity: 0, y: 30 }}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: 'easeOut', delay: 0.8 }}
-        className="mt-12 mb-16 w-full max-w-5xl mx-auto px-4"
+        transition={{ duration: 0.5, delay: 0.3 }}
+        className="mt-8 max-w-3xl"
       >
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">
-          Người Dùng Nói Gì Về Chúng Tôi
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-          {[
-            {
-              quote: "Công cụ này đã thay đổi hoàn toàn cách tôi tạo nội dung video. Nhanh chóng và chuyên nghiệp!",
-              author: "Minh Anh - Nhà sáng tạo nội dung",
-              avatar: "👩‍💻"
-            },
-            {
-              quote: "Chỉ cần vài phút, tôi đã có một video quảng cáo ấn tượng. Thật không thể tin được!",
-              author: "Hoàng Nam - Chủ doanh nghiệp",
-              avatar: "👨‍💼"
-            },
-            {
-              quote: "Giao diện thân thiện và kết quả tuyệt vời. Tôi sử dụng hàng tuần cho các dự án của mình.",
-              author: "Thanh Mai - Nhà thiết kế",
-              avatar: "👩‍🎨"
-            }
-          ].map((testimonial, index) => (
-            <motion.div 
-              key={index}
-              className="bg-white p-6 rounded-xl shadow-md border border-gray-100 relative"
+        <h2 className="text-2xl font-bold mb-4 text-gray-800">Chọn gói phù hợp với bạn</h2>
+        <p className="text-gray-600 mb-6">
+          Mỗi gói được thiết kế để đáp ứng nhu cầu khác nhau - từ người mới bắt đầu đến nhà sáng tạo chuyên nghiệp.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          {workflowRoutes.map((workflow, index) => (
+            <motion.div
+              key={workflow.path}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 + index * 0.2, duration: 0.5 }}
+              transition={{ duration: 0.5, delay: index * 0.1 + 0.3 }}
+              className={`bg-${workflow.bgColor}-50 rounded-lg p-5 shadow-sm border border-${workflow.bgColor}-100 hover:shadow-md transition-shadow`}
             >
-              <div className="absolute -top-6 left-6 w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-2xl shadow-md">
-                {testimonial.avatar}
+              <div className="flex items-center mb-3">
+                <div className={`w-10 h-10 flex items-center justify-center rounded-full bg-${workflow.bgColor}-200 text-xl mr-3`}>
+                  {workflow.icon}
+                </div>
+                <h3 className="text-xl font-semibold text-gray-800">{workflow.name}</h3>
               </div>
-              <p className="text-gray-600 italic mb-4 mt-8">“{testimonial.quote}”</p>
-              <p className="text-gray-800 font-medium">{testimonial.author}</p>
+              <p className="text-gray-600 text-sm mb-4 h-16 line-clamp-3">{workflow.description}</p>
+              <Link
+                href={`/dashboard/workflows/${workflow.path}`}
+                className={`block w-full text-center py-2 bg-${workflow.bgColor}-500 text-white rounded-lg hover:bg-${workflow.bgColor}-600 transition-colors font-medium`}
+              >
+                Khám phá {workflow.name}
+              </Link>
             </motion.div>
           ))}
         </div>
       </motion.div>
-      
-      {/* Thêm lời kêu gọi hành động cuối cùng */}
-      <motion.div 
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: 'easeOut', delay: 1.2 }}
-        className="mt-12 mb-20 w-full max-w-4xl mx-auto px-4 text-center"
+      <motion.div
+        initial={{ x: '100vw' }}
+        animate={{ x: '-100vw' }}
+        transition={{ duration: 15, repeat: Infinity, ease: 'linear' }}
+        className="text-xs text-gray-500 truncate max-w-[60vw] select-none"
       >
-        <h2 className="text-3xl md:text-4xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">
-          Sẵn Sàng Tạo Video AI Đầu Tiên Của Bạn?
-        </h2>
-        <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-          Tham gia cùng hàng ngàn người dùng đã khám phá sức mạnh của AI trong việc tạo video.
-        </p>
-        <GradientButton 
-          onClick={onStart} 
-          className="px-10 py-4 text-lg font-bold shadow-lg hover:scale-105 transition-transform"
-        >
-          Bắt Đầu Ngay Hôm Nay
-        </GradientButton>
+        Ứng dụng được phát triển bởi <span className="font-semibold text-primary">TDNM</span> - mọi chi tiết xin liên hệ: <a href="mailto:aigc.tdnm@gmail.com" className="underline hover:text-primary">aigc.tdnm@gmail.com</a> hoặc hotline: <a href="tel:0984519098" className="underline hover:text-primary">0984 519 098</a>
       </motion.div>
     </div>
   )
@@ -582,3 +557,30 @@ function VideoCreationIllustration() {
     </div>
   )
 }
+
+export const workflowRoutes = [
+  {
+    path: "basic",
+    name: "Basic",
+    icon: "🟢",
+    description: "Gói cơ bản dành cho người mới bắt đầu. Tạo video nhanh chóng với các bước đơn giản và giao diện trực quan.",
+    badge: "Phổ biến",
+    bgColor: "emerald"
+  },
+  {
+    path: "basic-plus",
+    name: "Basic+",
+    icon: "🟡",
+    description: "Nâng cấp từ Basic, thêm các tính năng chỉnh sửa nâng cao để tạo video chuyên nghiệp hơn.",
+    badge: "Nâng cao",
+    bgColor: "yellow"
+  },
+  {
+    path: "premium",
+    name: "Premium",
+    icon: "🔴",
+    description: "Giải pháp toàn diện cho nhà sáng tạo chuyên nghiệp. Tối đa hóa khả năng tùy chỉnh và tích hợp AI nâng cao.",
+    badge: "Chuyên nghiệp",
+    bgColor: "red"
+  }
+];

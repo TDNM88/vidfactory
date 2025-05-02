@@ -1,0 +1,13 @@
+name: tdnm-app
+build:
+  dockerfile: Dockerfile
+  exclude:
+    - bin/
+    - lib/
+    - cdk.json
+    - node_modules/aws-cdk-lib
+ports:
+  - 3000:3000
+env:
+  HF_TOKEN: ${{ secrets.HF_TOKEN }}
+  NEXT_PUBLIC_API_URL: "https://api.example.com"  # Update this with your actual API URL

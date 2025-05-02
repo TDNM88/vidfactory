@@ -2,12 +2,9 @@
   command = "npm run build"
   publish = ".next"
 
-[dev]
-  command = "npm run dev"
-  port = 3000
-
-[functions]
-  directory = "netlify/functions"
-
 [build.environment]
+  NETLIFY_NEXT_PLUGIN_SKIP = "false"
   NODE_VERSION = "18"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

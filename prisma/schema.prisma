@@ -2,6 +2,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -10,25 +11,52 @@ datasource db {
 }
 
 model User {
-  id          Int      @id @default(autoincrement())
-  username    String   @unique
-  password    String   // hashed password
-  credit      Int      @default(0)
-  brandName   String?
-  logoUrl     String?
-  email       String?
-  isAdmin     Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  creditLogs  CreditLog[]
+  id               Int      @id @default(autoincrement())
+  username         String   @unique
+  password         String   // hashed password
+  credit           Int      @default(0)
+  totalSpentCredits Int     @default(0)
+  brandName        String?
+  logoUrl          String?
+  email            String?
+  isAdmin          Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  creditLogs       CreditLog[]
 }
 
 model CreditLog {
   id        Int      @id @default(autoincrement())
   user      User     @relation(fields: [userId], references: [id])
   userId    Int
-  action    String
-  delta     Int
+  action    String   // generate_script, generate_image, generate_voice, etc.
+  delta     Int      // negative for usage, positive for purchases
   note      String?
+  metadata  String?  // Optional JSON metadata for storing additional information
   createdAt DateTime @default(now())
+}
+
+model ApiPricing {
+  id              Int      @id @default(autoincrement())
+  apiName         String   @unique
+  creditCost      Int
+  displayName     String
+  description     String?
+  isActive        Boolean  @default(true)
+  isFreeForBasic  Boolean  @default(false)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model CreditPackage {
+  id           Int      @id @default(autoincrement())
+  name         String
+  credits      Int
+  price        Float
+  description  String?
+  isActive     Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }

@@ -1,0 +1,12 @@
+{
+  "app": "npx ts-node --esm bin/app.ts",
+  "context": {
+    "@aws-cdk/core:enableStackNameDuplicates": "true",
+    "@aws-cdk/core:stackRelativeExports": "true",
+    "@aws-cdk/aws-ecs:defaultClusterName": "tdnm-cluster",
+    "@aws-cdk/aws-ecs:defaultServiceName": "tdnm-service",
+    "@aws-cdk/aws-ecs:defaultClusterProps": {
+      "containerInsights": true
+    }
+  }
+}

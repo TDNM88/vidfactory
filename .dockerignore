@@ -1,0 +1,8 @@
+bin/
+lib/
+cdk.json
+node_modules/aws-cdk-lib
+node_modules/cdk/
+*.cdk.ts
+*.cdk.js
+*.cdk.d.ts

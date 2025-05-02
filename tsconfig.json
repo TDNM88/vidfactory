@@ -37,6 +37,11 @@
     ".next/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "bin/**/*",
+    "lib/**/*",
+    "*.cdk.ts",
+    "*.cdk.js",
+    "*.cdk.d.ts"
   ]
 }

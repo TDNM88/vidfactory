@@ -1,6 +1,5 @@
 "use client";
 import { useState } from 'react';
-import Image from 'next/image';
 import axios from 'axios';
 
 export default function LoginPage() {
@@ -33,7 +32,10 @@ export default function LoginPage() {
       >
         <div className="flex flex-col items-center mb-4">
           <div className="mb-2">
-            <Image src="/logo.png" alt="TDNM logo" width={56} height={56} className="rounded-full" />
+            <div className="w-14 h-14 rounded-full bg-gradient-to-r from-primary to-teal-400 flex items-center justify-center text-white font-bold text-xl">
+              TDNM
+            </div>
+            {/* <Image src="/logo.png" alt="TDNM logo" width={56} height={56} className="rounded-full" /> */}
           </div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-primary mb-1 drop-shadow">Đăng nhập hệ thống</h1>
           <span className="text-gray-500 text-sm text-center">Trải nghiệm sản xuất video AI hiện đại, bảo mật, cá nhân hóa</span>

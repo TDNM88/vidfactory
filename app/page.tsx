@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
 import DashboardWorkflow from "@/components/dashboardworkflow";
 import DashboardWorkflowBasic from '@/components/dashboardworkflow-basic';
+import DashboardWorkflowBasicPlus from '@/components/dashboardworkflow-basic-plus';
 import Link from 'next/link';
 
 export default function Home() {
@@ -74,7 +75,7 @@ export default function Home() {
             transition={{ duration: 0.6, ease: "easeInOut" }}
             className="relative z-10"
           >
-            <div className="container mx-auto py-12 md:py-16 px-4">
+            <div className="container mx-auto py-12 md:py-16 px-4 bg-white/70 backdrop-blur-sm rounded-lg">
               <motion.div
                 className="text-center mb-12 md:mb-16"
                 initial={{ opacity: 0 }}
@@ -116,6 +117,8 @@ export default function Home() {
                 </motion.div>
               </motion.div>
               <DashboardWorkflow />
+              <DashboardWorkflowBasic />
+              <DashboardWorkflowBasicPlus />
             </div>
           </motion.div>
         )}
@@ -123,7 +126,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-10 mt-auto">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 bg-white/60 backdrop-blur-sm rounded-lg">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <h3 className="text-xl font-bold mb-4 text-emerald-400">AI Video Creator</h3>

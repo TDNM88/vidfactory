@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Video, CheckCircle, Clock, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import { Card, CardContent } from "@/components/ui/card";
+import { motion } from 'framer-motion';
 
 interface BasicPlusWelcomeProps {
   onStart: () => void;
@@ -12,91 +13,33 @@ interface BasicPlusWelcomeProps {
 
 const BasicPlusWelcome: React.FC<BasicPlusWelcomeProps> = ({ onStart }) => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-8 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 text-center">
-      <div className="max-w-4xl w-full bg-white rounded-2xl shadow-xl p-8 md:p-12">
-        {/* Header */}
-        <div className="flex items-center justify-center mb-8">
-          <Video className="w-12 h-12 text-purple-600 mr-4" />
-          <h1 className="text-4xl font-bold text-gray-800">Luồng Basic+</h1>
-        </div>
-        
-        {/* Main content */}
-        <div className="mb-10">
-          <p className="text-xl text-gray-700 mb-6">
-            Tạo video chất lượng cao với <span className="font-semibold text-purple-600">video stock từ Pexels</span> thay vì ảnh AI. 
-            Đơn giản, nhanh chóng và hiệu quả!
-          </p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-8">
-            <Card className="border-purple-100 hover:shadow-md transition-shadow">
-              <CardContent className="p-6 flex flex-col items-center">
-                <CheckCircle className="w-10 h-10 text-purple-500 mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Video Chất Lượng Cao</h3>
-                <p className="text-gray-600 text-center">Sử dụng video stock chuyên nghiệp từ Pexels với chất lượng HD</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="border-purple-100 hover:shadow-md transition-shadow">
-              <CardContent className="p-6 flex flex-col items-center">
-                <Clock className="w-10 h-10 text-purple-500 mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Tiết Kiệm Thời Gian</h3>
-                <p className="text-gray-600 text-center">Không cần chờ tạo ảnh AI, chọn video có sẵn và sử dụng ngay</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="border-purple-100 hover:shadow-md transition-shadow">
-              <CardContent className="p-6 flex flex-col items-center">
-                <Sparkles className="w-10 h-10 text-purple-500 mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Kết Quả Chuyên Nghiệp</h3>
-                <p className="text-gray-600 text-center">Tạo video chuyên nghiệp với giọng đọc AI và hiệu ứng chuyển cảnh</p>
-              </CardContent>
-            </Card>
-          </div>
-          
-          <div className="relative h-64 w-full rounded-xl overflow-hidden mb-8">
-            <div className="absolute inset-0 bg-black/20 z-10 flex items-center justify-center">
-              <Video className="w-16 h-16 text-white opacity-80" />
-            </div>
-            <Image 
-              src="/images/pexels-preview.jpg" 
-              alt="Pexels Video Preview"
-              fill
-              style={{ objectFit: 'cover' }}
-              className="rounded-xl"
-              onError={(e) => {
-                // Fallback if image doesn't exist
-                const target = e.target as HTMLImageElement;
-                target.style.backgroundColor = '#f3f4f6';
-              }}
-            />
-          </div>
-          
-          <div className="bg-purple-50 p-6 rounded-lg mb-8">
-            <h3 className="text-lg font-semibold mb-2 text-purple-800">Quy trình làm việc đơn giản</h3>
-            <ol className="list-decimal list-inside text-gray-700 space-y-2">
-              <li>Nhập chủ đề và tóm tắt nội dung video của bạn</li>
-              <li>AI sẽ tạo kịch bản phù hợp với nội dung</li>
-              <li>Tìm kiếm và chọn video stock từ Pexels cho từng phân đoạn</li>
-              <li>Tạo giọng đọc AI cho từng phân đoạn</li>
-              <li>Kết xuất video hoàn chỉnh với hiệu ứng chuyển cảnh</li>
-            </ol>
-          </div>
-        </div>
-        
-        {/* Call to action */}
-        <Button 
-          onClick={onStart} 
-          size="lg" 
-          className="bg-purple-600 hover:bg-purple-700 text-white text-lg px-10 py-6 rounded-full shadow-lg hover:shadow-xl transition-all"
-        >
-          Bắt đầu tạo Video Basic+
-        </Button>
-        
-        <p className="text-gray-500 mt-4 text-sm">
-          Video stock được cung cấp bởi Pexels - Nguồn video miễn phí chất lượng cao
-        </p>
-      </div>
-    </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="min-h-[60vh] flex flex-col items-center justify-center px-4 py-12 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-2xl shadow-lg"
+    >
+      <h1 className="text-3xl md:text-4xl font-extrabold text-yellow-600 mb-4 text-center">
+        Chào mừng bạn đến với <span className="text-amber-500">Luồng tạo video Basic+</span>
+      </h1>
+      <p className="text-lg text-gray-700 mb-6 max-w-xl text-center">
+        Ở đây, bạn chỉ cần nhập ý tưởng, chủ đề và một số thông tin cơ bản. Hệ thống AI sẽ giúp bạn tạo kịch bản video hấp dẫn, phù hợp với nền tảng mong muốn chỉ trong vài bước đơn giản.
+      </p>
+      <ul className="list-disc text-left mb-6 text-gray-600 max-w-lg mx-auto pl-6">
+        <li>Nhập chủ đề, tóm tắt nội dung, chọn nền tảng, phong cách ảnh...</li>
+        <li>Xác nhận để AI tạo kịch bản tự động</li>
+        <li>Chỉnh sửa, bổ sung chi tiết kịch bản, video, giọng đọc,... ở các bước tiếp theo</li>
+        <li>Tạo video hoàn chỉnh chỉ trong vài phút!</li>
+      </ul>
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={onStart}
+        className="mt-2 px-8 py-3 bg-gradient-to-r from-yellow-500 to-amber-500 text-white text-lg font-bold rounded-xl shadow-md hover:scale-105 hover:opacity-90 transition-all duration-200"
+      >
+        Bắt đầu
+      </motion.button>
+    </motion.div>
   );
 };
 
