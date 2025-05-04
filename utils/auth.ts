@@ -22,6 +22,19 @@ export async function verifyToken(req: NextApiRequest, prisma: PrismaClient) {
     
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
+      select: {
+        id: true,
+        username: true,
+        password: true,
+        credit: true,
+        totalSpentCredits: true,
+        brandName: true,
+        logoUrl: true,
+        email: true,
+        isAdmin: true,
+        createdAt: true,
+        updatedAt: true
+      }
     });
     
     if (!user) {

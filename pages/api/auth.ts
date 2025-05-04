@@ -14,7 +14,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!username || !password) {
     return res.status(400).json({ success: false, error: 'Missing username or password' });
   }
-  const user = await prisma.user.findUnique({ where: { username } });
+  const user = await prisma.user.findUnique({ 
+    where: { username },
+    select: {
+      id: true,
+      username: true,
+      password: true,
+      credit: true,
+      totalSpentCredits: true,
+      brandName: true,
+      logoUrl: true,
+      email: true,
+      isAdmin: true
+    }
+  });
   if (!user) {
     return res.status(401).json({ success: false, error: 'Invalid credentials' });
   }
@@ -23,5 +36,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ success: false, error: 'Invalid credentials' });
   }
   const token = jwt.sign({ userId: user.id, isAdmin: user.isAdmin }, JWT_SECRET, { expiresIn: '7d' });
-  return res.status(200).json({ success: true, token, user: { username: user.username, isAdmin: user.isAdmin, credit: user.credit, brandName: user.brandName, logoUrl: user.logoUrl, email: user.email } });
+  return res.status(200).json({ success: true, token, user: { username: user.username, isAdmin: user.isAdmin, credit: user.credit, totalSpentCredits: user.totalSpentCredits, brandName: user.brandName, logoUrl: user.logoUrl, email: user.email } });
 }

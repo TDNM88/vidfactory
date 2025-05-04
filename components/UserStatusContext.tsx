@@ -5,6 +5,10 @@ interface UserInfo {
   username: string;
   credit: number;
   isAdmin?: boolean;
+  email?: string;
+  brandName?: string;
+  logoUrl?: string;
+  totalSpentCredits?: number;
 }
 
 interface UserStatusContextType {
@@ -41,6 +45,10 @@ export const UserStatusProvider = ({ children }: { children: React.ReactNode }) 
           username: data.user.username,
           credit: data.user.credit,
           isAdmin: data.user.isAdmin,
+          email: data.user.email,
+          brandName: data.user.brandName,
+          logoUrl: data.user.logoUrl,
+          totalSpentCredits: data.user.totalSpentCredits,
         });
       } else {
         setUser(null);

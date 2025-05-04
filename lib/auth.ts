@@ -11,7 +11,22 @@ export async function verifyToken(req: NextApiRequest, prisma: PrismaClient) {
   const token = header.replace(/^Bearer /, '');
   try {
     const payload = jwt.verify(token, JWT_SECRET) as { userId: number, isAdmin: boolean };
-    const user = await prisma.user.findUnique({ where: { id: payload.userId } });
+    const user = await prisma.user.findUnique({ 
+      where: { id: payload.userId },
+      select: {
+        id: true,
+        username: true,
+        password: true,
+        credit: true,
+        totalSpentCredits: true,
+        brandName: true,
+        logoUrl: true,
+        email: true,
+        isAdmin: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    });
     return user;
   } catch {
     return null;

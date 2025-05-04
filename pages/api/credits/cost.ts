@@ -46,8 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           creditCost: defaultCost.creditCost,
           displayName: defaultCost.displayName,
           canAfford: false,
-          userCredit: 0,
-          isBasicFree: false
+          userCredit: 0
         });
       } else {
         // Nếu không tìm thấy API trong danh sách mặc định
@@ -57,8 +56,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           creditCost: 1,
           displayName: apiNameStr,
           canAfford: false,
-          userCredit: 0,
-          isBasicFree: false
+          userCredit: 0
         });
       }
     }
@@ -77,19 +75,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Kiểm tra xem người dùng có đủ credit không
     const canAfford = user.credit >= pricing.creditCost;
-    
-    // Kiểm tra xem API này có miễn phí cho gói Basic không
-    // Mặc định tất cả người dùng đều dùng gói Basic nếu không có trường plan trong model
-    const isBasicFree = pricing.isFreeForBasic;
 
     return res.status(200).json({
       success: true,
       apiName: pricing.apiName,
-      creditCost: isBasicFree ? 0 : pricing.creditCost,
+      creditCost: pricing.creditCost,
       displayName: pricing.displayName,
       canAfford,
-      userCredit: user.credit,
-      isBasicFree
+      userCredit: user.credit
     });
   } catch (error: any) {
     console.error('Error fetching API cost:', error);

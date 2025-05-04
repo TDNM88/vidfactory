@@ -8,7 +8,7 @@ const nextConfig = {
     'https://*.ngrok-free.app',
     'http://localhost:3000',
     'https://4b11-42-116-202-113.ngrok-free.app',
-    'http://127.0.0.1:3000',
+    'http://127.0.0.1:*',  // Sử dụng wildcard cho tất cả các port từ 127.0.0.1
     'http://192.168.1.4:3000'
   ],
   images: {

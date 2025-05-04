@@ -685,11 +685,15 @@ const DashboardWorkflowBasicPlus = () => {
     setIsAnalyzingContent(true);
     
     try {
+      // Lấy token từ localStorage
+      const token = localStorage.getItem('token');
+      
       // Gọi API để phân tích nội dung và đề xuất từ khóa tìm kiếm
       const response = await fetch('/api/analyze-content', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
         },
         credentials: 'include', // Thêm thông tin xác thực
         body: JSON.stringify({
@@ -887,11 +891,22 @@ const DashboardWorkflowBasicPlus = () => {
     const platformSize = platformSizes[sessionData.platform] || { width: 1280, height: 720 };
 
     try {
+      // Lấy token từ localStorage
+      const token = localStorage.getItem('token');
+      
+      console.log('Bắt đầu tạo kịch bản với dữ liệu:', {
+        subject: sessionData.subject,
+        summary: sessionData.summary,
+        platform: sessionData.platform,
+        duration: sessionData.duration
+      });
+      
       // Gọi API để tạo kịch bản
       const response = await fetch('/api/generate-script', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
         },
         credentials: 'include', // Thêm thông tin xác thực
         body: JSON.stringify({
@@ -902,13 +917,21 @@ const DashboardWorkflowBasicPlus = () => {
         }),
       });
 
+      console.log('Kết quả gọi API tạo kịch bản:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
       if (!response.ok) {
         throw new Error('Lỗi khi gọi API tạo kịch bản');
       }
 
       const data = await response.json();
+      console.log('Dữ liệu nhận được từ API:', data);
       
       if (data.success && data.script) {
+        console.log('Cập nhật state với kịch bản đã tạo:', data.script);
         // Cập nhật state với kịch bản đã tạo
         setSessionData((prev) => ({
           ...prev,
@@ -1016,78 +1039,194 @@ const DashboardWorkflowBasicPlus = () => {
           transition={{ duration: 0.5 }}
           className="mt-6 bg-white p-6 rounded-lg shadow-md"
         >
-          <h2 className="text-2xl font-semibold mb-4 text-gray-800">Bước 1: Nhập ý tưởng video của bạn</h2>
-          <p className="text-gray-600 mb-6">Hãy cung cấp ý tưởng chính hoặc chủ đề cho video của bạn. AI sẽ giúp bạn tạo kịch bản phù hợp.</p>
+          <div className="border-l-4 border-amber-400 pl-4 mb-6">
+            <h2 className="text-2xl font-semibold mb-2 text-gray-800 flex items-center">
+              <Sparkles className="w-6 h-6 mr-2 text-amber-500" />
+              Bước 1: Nhập ý tưởng video của bạn
+            </h2>
+            <p className="text-gray-600">
+              Hãy cung cấp ý tưởng chính hoặc chủ đề cho video của bạn. AI sẽ giúp bạn tạo kịch bản phù hợp.
+            </p>
+          </div>
           
-          <div className="grid grid-cols-1 gap-5 mb-6">
-            <div>
-              <Label htmlFor="subject" className="block mb-2 font-medium text-gray-700">Chủ đề chính</Label>
-              <Input
-                id="subject"
-                placeholder="Ví dụ: Review sản phẩm công nghệ, Chia sẻ mẹo du lịch..."
-                value={sessionData.subject}
-                onChange={(e) => setSessionData((prev) => ({ ...prev, subject: e.target.value }))}
-                className="w-full"
-              />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="subject" className="font-medium text-gray-700 flex items-center">
+                  Chủ đề chính <span className="text-red-500 ml-1">*</span>
+                  <div className="relative ml-2 group">
+                    <Info className="w-4 h-4 text-gray-400" />
+                    <div className="absolute left-0 bottom-full mb-2 w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity z-10">
+                      Nhập chủ đề chính của video, càng cụ thể càng tốt để AI tạo kịch bản phù hợp.
+                    </div>
+                  </div>
+                </Label>
+                <Input
+                  id="subject"
+                  placeholder="Ví dụ: Review sản phẩm công nghệ, Chia sẻ mẹo du lịch..."
+                  value={sessionData.subject}
+                  onChange={(e) => setSessionData((prev) => ({ ...prev, subject: e.target.value }))}
+                  className="w-full border-gray-300 focus:border-amber-500 focus:ring focus:ring-amber-200 focus:ring-opacity-50 transition-colors"
+                />
+                {!sessionData.subject && (
+                  <p className="text-amber-600 text-xs italic mt-1">Chủ đề là bắt buộc để tạo kịch bản</p>
+                )}
+              </div>
               
-              <Label htmlFor="summary" className="block mt-4 mb-2 font-medium text-gray-700">Tóm tắt nội dung</Label>
-              <Textarea
-                id="summary"
-                placeholder="Mô tả thêm về nội dung video bạn muốn tạo..."
-                value={sessionData.summary}
-                onChange={(e) => setSessionData((prev) => ({ ...prev, summary: e.target.value }))}
-                className="w-full h-24"
-              />
+              <div className="space-y-2">
+                <Label htmlFor="summary" className="font-medium text-gray-700 flex items-center">
+                  Tóm tắt nội dung
+                  <div className="relative ml-2 group">
+                    <Info className="w-4 h-4 text-gray-400" />
+                    <div className="absolute left-0 bottom-full mb-2 w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity z-10">
+                      Mô tả chi tiết hơn về nội dung bạn muốn đưa vào video.
+                    </div>
+                  </div>
+                </Label>
+                <Textarea
+                  id="summary"
+                  placeholder="Mô tả thêm về nội dung video bạn muốn tạo..."
+                  value={sessionData.summary}
+                  onChange={(e) => setSessionData((prev) => ({ ...prev, summary: e.target.value }))}
+                  className="w-full h-32 border-gray-300 focus:border-amber-500 focus:ring focus:ring-amber-200 focus:ring-opacity-50 transition-colors"
+                />
+              </div>
             </div>
             
-            <div>
-              <Label htmlFor="platform" className="block mb-2 font-medium text-gray-700">Nền tảng</Label>
-              <Select
-                value={sessionData.platform}
-                onValueChange={(value) => setSessionData((prev) => ({ ...prev, platform: value }))}
-              >
-                <SelectTrigger id="platform">
-                  <SelectValue placeholder="Chọn nền tảng" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="TikTok">TikTok (9:16)</SelectItem>
-                  <SelectItem value="YouTube">YouTube (16:9)</SelectItem>
-                  <SelectItem value="Instagram">Instagram (1:1)</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="space-y-5">
+              <div className="p-4 bg-amber-50 rounded-lg border border-amber-100">
+                <h3 className="font-medium text-amber-800 mb-3 flex items-center">
+                  <Video className="w-4 h-4 mr-2" />
+                  Định dạng Video
+                </h3>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="platform" className="font-medium text-gray-700 flex items-center">
+                      Nền tảng
+                      <div className="relative ml-2 group">
+                        <Info className="w-4 h-4 text-gray-400" />
+                        <div className="absolute left-0 bottom-full mb-2 w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity z-10">
+                          Chọn nền tảng để xác định tỷ lệ khung hình phù hợp.
+                        </div>
+                      </div>
+                    </Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div 
+                        className={`border rounded-lg p-3 text-center cursor-pointer transition-all ${
+                          sessionData.platform === 'TikTok' 
+                            ? 'bg-amber-100 border-amber-400 shadow-sm' 
+                            : 'border-gray-200 hover:border-amber-300'
+                        }`}
+                        onClick={() => setSessionData((prev) => ({ ...prev, platform: 'TikTok' }))}
+                      >
+                        <div className="mx-auto w-6 h-12 bg-gray-200 rounded mb-2"></div>
+                        <span className="text-sm font-medium">TikTok</span>
+                        <span className="block text-xs text-gray-500">9:16</span>
+                      </div>
+                      <div 
+                        className={`border rounded-lg p-3 text-center cursor-pointer transition-all ${
+                          sessionData.platform === 'YouTube' 
+                            ? 'bg-amber-100 border-amber-400 shadow-sm' 
+                            : 'border-gray-200 hover:border-amber-300'
+                        }`}
+                        onClick={() => setSessionData((prev) => ({ ...prev, platform: 'YouTube' }))}
+                      >
+                        <div className="mx-auto w-12 h-7 bg-gray-200 rounded mb-2"></div>
+                        <span className="text-sm font-medium">YouTube</span>
+                        <span className="block text-xs text-gray-500">16:9</span>
+                      </div>
+                      <div 
+                        className={`border rounded-lg p-3 text-center cursor-pointer transition-all ${
+                          sessionData.platform === 'Instagram' 
+                            ? 'bg-amber-100 border-amber-400 shadow-sm' 
+                            : 'border-gray-200 hover:border-amber-300'
+                        }`}
+                        onClick={() => setSessionData((prev) => ({ ...prev, platform: 'Instagram' }))}
+                      >
+                        <div className="mx-auto w-8 h-8 bg-gray-200 rounded mb-2"></div>
+                        <span className="text-sm font-medium">Instagram</span>
+                        <span className="block text-xs text-gray-500">1:1</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="duration" className="font-medium text-gray-700 flex items-center">
+                      Thời lượng
+                      <div className="relative ml-2 group">
+                        <Info className="w-4 h-4 text-gray-400" />
+                        <div className="absolute left-0 bottom-full mb-2 w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity z-10">
+                          Chọn thời lượng video mong muốn. Thời lượng dài hơn sẽ tạo nhiều phân đoạn hơn.
+                        </div>
+                      </div>
+                    </Label>
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>30s</span>
+                        <span>60s</span>
+                        <span>90s</span>
+                        <span>120s</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="30"
+                        max="120"
+                        step="30"
+                        value={sessionData.duration}
+                        onChange={(e) => setSessionData((prev) => ({ ...prev, duration: e.target.value }))}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                      />
+                      <div className="text-center font-medium text-amber-600">
+                        {sessionData.duration} giây
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
               
-              <Label htmlFor="duration" className="block mt-4 mb-2 font-medium text-gray-700">Thời lượng (giây)</Label>
-              <Select
-                value={sessionData.duration}
-                onValueChange={(value) => setSessionData((prev) => ({ ...prev, duration: value }))}
-              >
-                <SelectTrigger id="duration">
-                  <SelectValue placeholder="Chọn thới lượng" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="30">30 giây</SelectItem>
-                  <SelectItem value="60">60 giây</SelectItem>
-                  <SelectItem value="90">90 giây</SelectItem>
-                  <SelectItem value="120">120 giây</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <h3 className="font-medium text-gray-700 mb-2">Ví dụ chủ đề hay</h3>
+                <ul className="space-y-1 text-sm text-gray-600">
+                  <li className="flex items-center">
+                    <span className="w-2 h-2 bg-amber-500 rounded-full mr-2"></span>
+                    "Cách tiết kiệm điện trong mùa hè"
+                  </li>
+                  <li className="flex items-center">
+                    <span className="w-2 h-2 bg-amber-500 rounded-full mr-2"></span>
+                    "5 địa điểm du lịch hấp dẫn ở Việt Nam"
+                  </li>
+                  <li className="flex items-center">
+                    <span className="w-2 h-2 bg-amber-500 rounded-full mr-2"></span>
+                    "Hướng dẫn làm món cà phê dừa ngon tại nhà"
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
           
-          <div className="flex justify-end gap-3">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 border-t pt-6">
+            <div className="text-sm text-gray-500 flex items-center">
+              <Info className="w-4 h-4 mr-1" />
+              AI sẽ tạo kịch bản dựa trên thông tin bạn cung cấp
+            </div>
             <CreditCostButton
               apiName="generate_script"
               onClick={handleGenerateScript}
               disabled={!sessionData.subject || isGeneratingScript}
               size="lg"
+              className="bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-white px-8 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex items-center"
             >
               {isGeneratingScript ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                   Đang tạo kịch bản...
                 </>
               ) : (
-                "Tạo kịch bản"
+                <>
+                  <Wand2 className="w-5 h-5 mr-2" />
+                  Tạo kịch bản
+                </>
               )}
             </CreditCostButton>
           </div>

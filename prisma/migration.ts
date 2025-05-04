@@ -14,7 +14,6 @@ async function main() {
         displayName: 'Tạo kịch bản',
         description: 'Tạo kịch bản cho video từ các từ khóa đầu vào',
         creditCost: 5,
-        isFreeForBasic: false,
         sortOrder: 1,
       },
       {
@@ -22,7 +21,6 @@ async function main() {
         displayName: 'Tạo hình ảnh',
         description: 'Tạo hình ảnh từ mô tả văn bản',
         creditCost: 8,
-        isFreeForBasic: false,
         sortOrder: 2,
       },
       {
@@ -30,7 +28,6 @@ async function main() {
         displayName: 'Tạo giọng đọc',
         description: 'Chuyển đổi văn bản thành giọng đọc',
         creditCost: 3,
-        isFreeForBasic: false,
         sortOrder: 3,
       },
       {
@@ -38,7 +35,6 @@ async function main() {
         displayName: 'Ghép video và giọng nói',
         description: 'Kết hợp video và âm thanh thành một video hoàn chỉnh',
         creditCost: 2,
-        isFreeForBasic: false,
         sortOrder: 4,
       },
       {
@@ -46,7 +42,6 @@ async function main() {
         displayName: 'Phân tích nội dung',
         description: 'Phân tích nội dung văn bản và gợi ý từ khóa',
         creditCost: 1,
-        isFreeForBasic: true,
         sortOrder: 5,
       },
       {
@@ -54,7 +49,6 @@ async function main() {
         displayName: 'Ghép nhiều video',
         description: 'Ghép nhiều video thành một video dài',
         creditCost: 5,
-        isFreeForBasic: false,
         sortOrder: 6,
       },
     ];

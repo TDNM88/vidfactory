@@ -18,7 +18,6 @@ class CreditService {
     user?: any; 
     pricing?: any; 
     error?: string;
-    isBasicFree?: boolean;
   }> {
     try {
       // Lấy thông tin người dùng
@@ -37,16 +36,6 @@ class CreditService {
 
       if (!pricing) {
         return { success: false, error: 'API không tồn tại trong hệ thống giá' };
-      }
-
-      // Kiểm tra nếu API được miễn phí cho tài khoản Basic
-      if (pricing.isFreeForBasic) {
-        return { 
-          success: true, 
-          user, 
-          pricing, 
-          isBasicFree: true 
-        };
       }
 
       // Kiểm tra số dư tín dụng
@@ -85,15 +74,6 @@ class CreditService {
       
       if (!checkResult.success) {
         return { success: false, error: checkResult.error };
-      }
-
-      // Nếu API miễn phí cho Basic, không cần trừ credit
-      if (checkResult.isBasicFree) {
-        return { 
-          success: true, 
-          creditCost: 0, 
-          remainingCredit: checkResult.user.credit 
-        };
       }
 
       const creditCost = checkResult.pricing.creditCost;

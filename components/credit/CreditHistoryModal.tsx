@@ -34,7 +34,14 @@ const CreditHistoryModal: React.FC<CreditHistoryModalProps> = ({ opened, onClose
       try {
         setLoading(true);
         const offset = (page - 1) * limit;
-        const response = await fetch(`/api/credits/info?limit=${limit}&offset=${offset}`);
+        // Lấy token từ localStorage
+        const token = localStorage.getItem('token');
+        
+        const response = await fetch(`/api/credits/info?limit=${limit}&offset=${offset}`, {
+          headers: {
+            'Authorization': token ? `Bearer ${token}` : ''
+          }
+        });
         
         if (!response.ok) {
           throw new Error('Failed to fetch credit history');

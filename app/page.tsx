@@ -11,19 +11,30 @@ import { toast } from "react-hot-toast";
 import DashboardWorkflow from "@/components/dashboardworkflow";
 import DashboardWorkflowBasic from '@/components/dashboardworkflow-basic';
 import DashboardWorkflowBasicPlus from '@/components/dashboardworkflow-basic-plus';
+import WorkflowSelection from '@/components/workflow-selection';
 import Link from 'next/link';
 
 export default function Home() {
   const [showIntro, setShowIntro] = useState(true);
+  const [showWorkflowSelection, setShowWorkflowSelection] = useState(false);
+  const [selectedWorkflow, setSelectedWorkflow] = useState<string | null>(null);
   const videoGeneratorRef = useRef<HTMLDivElement>(null);
 
   const handleStartApp = () => {
     setShowIntro(false);
+    setShowWorkflowSelection(true);
     toast.success("Chào mừng bạn đến với ứng dụng tạo video AI!", {
       duration: 3000,
     });
   };
 
+  const handleSelectWorkflow = (workflow: string) => {
+    setSelectedWorkflow(workflow);
+    setShowWorkflowSelection(false);
+    toast.success(`Bạn đã chọn luồng ${workflow}!`, {
+      duration: 3000,
+    });
+  };
 
   const handleCreateVideo = () => {
     toast("Hãy nhập thông tin để tạo video!");
@@ -66,6 +77,17 @@ export default function Home() {
       <AnimatePresence mode="wait">
         {showIntro ? (
           <IntroScreen onStart={handleStartApp} />
+        ) : showWorkflowSelection ? (
+          <motion.div
+            key="workflow-selection"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -40 }}
+            transition={{ duration: 0.6, ease: "easeInOut" }}
+            className="relative z-10"
+          >
+            <WorkflowSelection onSelectWorkflow={handleSelectWorkflow} />
+          </motion.div>
         ) : (
           <motion.div
             key="dashboard"
@@ -107,18 +129,29 @@ export default function Home() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.4 }}
                 >
-                  <p className="text-sm text-gray-500 mb-2">Ứng dụng được phát triển bởi TDNM</p>
                   <div className="flex space-x-2">
                     <Link href="/login" passHref>
                       <OutlineButton size="sm">Đăng nhập</OutlineButton>
                     </Link>
-                    <GradientButton onClick={handleStartApp} size="sm">Bắt đầu</GradientButton>
+                    <GradientButton onClick={() => setShowWorkflowSelection(true)} size="sm">Quay lại chọn luồng</GradientButton>
                   </div>
                 </motion.div>
               </motion.div>
-              <DashboardWorkflow />
-              <DashboardWorkflowBasic />
-              <DashboardWorkflowBasicPlus />
+              {selectedWorkflow === "basic" && <DashboardWorkflowBasic />}
+              {selectedWorkflow === "basic-plus" && <DashboardWorkflowBasicPlus />}
+              {selectedWorkflow === "premium" && <DashboardWorkflow />}
+              {selectedWorkflow === "super" && (
+                <div className="text-center py-12 px-4">
+                  <h2 className="text-2xl font-bold mb-4 text-purple-600">Luồng Super - Sắp ra mắt</h2>
+                  <p className="text-gray-600 mb-6">
+                    Chúng tôi đang phát triển luồng Super với các tính năng cao cấp nhất. 
+                    Vui lòng quay lại sau hoặc chọn một luồng khác.
+                  </p>
+                  <GradientButton onClick={() => setShowWorkflowSelection(true)}>
+                    Quay lại chọn luồng
+                  </GradientButton>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -126,7 +159,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-10 mt-auto">
-        <div className="container mx-auto px-4 bg-white/60 backdrop-blur-sm rounded-lg">
+        <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <h3 className="text-xl font-bold mb-4 text-emerald-400">AI Video Creator</h3>

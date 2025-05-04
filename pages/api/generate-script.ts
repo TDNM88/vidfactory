@@ -1,7 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { PrismaClient } from '@prisma/client';
+import { verifyToken } from '../../utils/auth';
+import CreditService from '../../services/CreditService';
 
 // Danh sách phong cách hợp lệ (đồng bộ với DashboardWorkflow.tsx)
 const validStyles = ["cinematic", "anime", "flat lay", "realistic"];
+
+const prisma = new PrismaClient();
+const creditService = new CreditService(prisma);
 
 // Utility function to call OpenRouter with retry logic
 async function callOpenRouter(prompt: string, apiKey: string, retries = 3) {
@@ -48,18 +54,49 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    console.log('API /api/generate-script được gọi');
+    
+    // Xác thực người dùng
+    const user = await verifyToken(req, prisma);
+    if (!user) {
+      console.log('Xác thực thất bại: Không có người dùng');
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+    
+    console.log(`Người dùng đã xác thực: ${user.username} (ID: ${user.id})`);
+
     const { subject, summary, duration, platform } = req.body;
+    console.log('Dữ liệu nhận được:', { subject, summary, duration, platform });
 
     // Validate inputs
     if (!subject || !summary) {
+      console.log('Thiếu dữ liệu đầu vào');
       return res.status(400).json({ success: false, error: "Chủ đề và tóm tắt nội dung là bắt buộc" });
     }
+
+    // Kiểm tra và trừ credit
+    const creditResult = await creditService.deductCredit(
+      user.id, 
+      'generate-script', 
+      'Tạo kịch bản',
+      { username: user.username }
+    );
+
+    if (!creditResult.success) {
+      console.log('Không thể trừ credit:', creditResult.error);
+      return res.status(400).json({ success: false, error: creditResult.error });
+    }
+
+    console.log(`User ${user.username} deducted ${creditResult.creditCost} credits for script generation`);
 
     const session_id = crypto?.randomUUID?.() || Math.random().toString(36).substring(2);
     const openRouterApiKey = process.env.OPENROUTER_API_KEY;
     if (!openRouterApiKey) {
+      console.log('Thiếu OpenRouter API key');
       return res.status(500).json({ success: false, error: "OpenRouter API key không được cấu hình" });
     }
+
+    console.log('Đang xây dựng prompt cho OpenRouter API...');
 
     // Build prompt without style, character, or scene
     const prompt = `
@@ -91,7 +128,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     `;
 
+    console.log('Prompt đã được xây dựng:', prompt);
+
     const data = await callOpenRouter(prompt, openRouterApiKey);
+    console.log('Đã nhận được phản hồi từ OpenRouter API:', data);
+
     if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
       console.error("Unexpected response format:", data);
       return res.status(500).json({ success: false, error: "Định dạng phản hồi từ API không hợp lệ" });
@@ -102,6 +143,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.error("No content in response:", data);
       return res.status(500).json({ success: false, error: "Không có nội dung trong phản hồi từ API" });
     }
+
+    console.log('Đang phân tích kịch bản từ phản hồi...');
 
     // Parse JSON from the response
     let scriptData;
@@ -124,6 +167,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.error("Error parsing JSON from LLM response:", error, "Raw text:", text);
       return res.status(500).json({ success: false, error: "Lỗi khi phân tích kịch bản từ phản hồi" });
     }
+
+    console.log('Kịch bản đã được phân tích thành công:', scriptData);
 
     return res.status(200).json({
       success: true,
