@@ -65,13 +65,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     console.log(`Người dùng đã xác thực: ${user.username} (ID: ${user.id})`);
 
-    const { subject, summary, duration, platform } = req.body;
-    console.log('Dữ liệu nhận được:', { subject, summary, duration, platform });
+    // Lấy các tham số bắt buộc từ request body
+    const { subject, summary, duration, platform, style, workflow } = req.body;
+    console.log('Dữ liệu nhận được:', { subject, summary, duration, platform, style, workflow });
 
-    // Validate inputs
+    // Validate inputs - kiểm tra đầy đủ các tham số bắt buộc
     if (!subject || !summary) {
       console.log('Thiếu dữ liệu đầu vào');
       return res.status(400).json({ success: false, error: "Chủ đề và tóm tắt nội dung là bắt buộc" });
+    }
+
+    if (!duration) {
+      console.log('Thiếu thời lượng video');
+      return res.status(400).json({ success: false, error: "Thời lượng video là bắt buộc" });
+    }
+
+    if (!platform) {
+      console.log('Thiếu nền tảng mạng xã hội');
+      return res.status(400).json({ success: false, error: "Nền tảng mạng xã hội là bắt buộc" });
     }
 
     // Kiểm tra và trừ credit
@@ -98,11 +109,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log('Đang xây dựng prompt cho OpenRouter API...');
 
-    // Build prompt without style, character, or scene
+    // Xác định số phân đoạn tối đa dựa trên workflow
+    let maxSegments = 5; // Mặc định cho Basic
+    if (workflow === 'basic-plus') {
+      maxSegments = 10;
+    } else if (workflow === 'premium') {
+      maxSegments = 20;
+    }
+
+    // Build prompt với thông tin đầy đủ
     const prompt = `
       Bạn là một chuyên gia viết kịch bản video chuyên nghiệp cho mạng xã hội ${platform}. Hãy tạo một kịch bản video hấp dẫn với chủ đề: ${subject}.
       Tóm tắt nội dung: ${summary}
-      Độ dài video mong muốn: ${duration} giây. Tổng số phân đoạn, độ dài, và nội dung lời thoại phải phù hợp với thời lượng này (mỗi phân đoạn khoảng 3-5 câu, tổng số phân đoạn và độ dài lời thoại vừa phải để video không quá ngắn hoặc quá dài so với ${duration}). Nếu cần, tăng số phân đoạn hoặc kéo dài nội dung hợp lý để phù hợp thời lượng.
+      Độ dài video mong muốn: ${duration} giây. 
+      Tổng số phân đoạn tối đa: ${maxSegments} phân đoạn.
+      Tổng số phân đoạn, độ dài, và nội dung lời thoại phải phù hợp với thời lượng này (mỗi phân đoạn khoảng 3-5 câu, tổng số phân đoạn và độ dài lời thoại vừa phải để video không quá ngắn hoặc quá dài so với ${duration}).
+      ${style ? `Phong cách video: ${style}.` : ''}
       
       **Yêu cầu về kịch bản**:
       - Kịch bản cần chia thành các phân đoạn logic, mỗi phân đoạn gồm:
@@ -149,20 +171,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Parse JSON from the response
     let scriptData;
     try {
+      // Tìm kiếm chuỗi JSON trong phản hồi
       const jsonMatch = text.match(/\{[\s\S]*\}/m);
       if (!jsonMatch) {
         throw new Error("Không tìm thấy đoạn JSON hợp lệ trong phản hồi");
       }
       scriptData = JSON.parse(jsonMatch[0]);
 
-      // Chuẩn hóa mô tả ảnh
+      // Kiểm tra cấu trúc JSON
+      if (!scriptData.title || !Array.isArray(scriptData.segments)) {
+        throw new Error("Cấu trúc JSON không hợp lệ: thiếu title hoặc segments");
+      }
+
+      // Chuẩn hóa mô tả ảnh và đảm bảo đủ các trường
       scriptData.segments = scriptData.segments.map((segment: any) => ({
         ...segment,
+        script: segment.script || "Không có lời thoại",
         image_description: segment.image_description
-          ? segment.image_description.replace(/^(Mô tả ảnh:|Ảnh:|Mô tả:|Image description:)\s*/i, '').trim() : '',
+          ? segment.image_description.replace(/^(Mô tả ảnh:|Ảnh:|Mô tả:|Image description:)\s*/i, '').trim() 
+          : 'Hình ảnh minh họa cho phân đoạn này',
         image_description_en: segment.image_description_en
-          ? segment.image_description_en.replace(/^(Image description:|Description:|Mô tả ảnh:|Ảnh:|Mô tả:)\s*/i, '').trim() : '',
+          ? segment.image_description_en.replace(/^(Image description:|Description:|Mô tả ảnh:|Ảnh:|Mô tả:)\s*/i, '').trim() 
+          : 'Illustration for this segment',
       }));
+
+      // Giới hạn số lượng phân đoạn theo workflow
+      if (scriptData.segments.length > maxSegments) {
+        scriptData.segments = scriptData.segments.slice(0, maxSegments);
+      }
     } catch (error) {
       console.error("Error parsing JSON from LLM response:", error, "Raw text:", text);
       return res.status(500).json({ success: false, error: "Lỗi khi phân tích kịch bản từ phản hồi" });
@@ -174,6 +210,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       success: true,
       script: scriptData,
       session_id,
+      workflow, // Trả về thông tin workflow để frontend biết
     });
   } catch (error: any) {
     console.error("Error generating script:", error);

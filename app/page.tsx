@@ -137,9 +137,9 @@ export default function Home() {
                   </div>
                 </motion.div>
               </motion.div>
-              {selectedWorkflow === "basic" && <DashboardWorkflowBasic />}
-              {selectedWorkflow === "basic-plus" && <DashboardWorkflowBasicPlus />}
-              {selectedWorkflow === "premium" && <DashboardWorkflowBasicPlus />}
+              {selectedWorkflow === "basic" && <DashboardWorkflowBasic voiceOptions={[]} voiceApiType="f5-tts" onVoiceChange={() => {}} onGenerateVoiceForSegment={async () => {}} onEditImageDesc={() => {}} onGenerateImageForSegment={async () => {}} onConfirm={() => {}} />}
+              {selectedWorkflow === "basic-plus" && <DashboardWorkflowBasicPlus voiceOptions={[]} voiceApiType="f5-tts" onVoiceChange={() => {}} onGenerateVoiceForSegment={async () => {}} onEditImageDesc={() => {}} onGenerateImageForSegment={async () => {}} onConfirm={() => {}} />}
+              {selectedWorkflow === "premium" && <DashboardWorkflowBasicPlus voiceOptions={[]} voiceApiType="f5-tts" onVoiceChange={() => {}} onGenerateVoiceForSegment={async () => {}} onEditImageDesc={() => {}} onGenerateImageForSegment={async () => {}} onConfirm={() => {}} />}
               {selectedWorkflow === "super" && (
                 <div className="text-center py-12 px-4">
                   <h2 className="text-2xl font-bold mb-4 text-purple-600">Luồng Super - Sắp ra mắt</h2>
