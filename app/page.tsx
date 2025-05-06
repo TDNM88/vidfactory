@@ -139,7 +139,7 @@ export default function Home() {
               </motion.div>
               {selectedWorkflow === "basic" && <DashboardWorkflowBasic />}
               {selectedWorkflow === "basic-plus" && <DashboardWorkflowBasicPlus />}
-              {selectedWorkflow === "premium" && <DashboardWorkflow />}
+              {selectedWorkflow === "premium" && <DashboardWorkflowBasicPlus />}
               {selectedWorkflow === "super" && (
                 <div className="text-center py-12 px-4">
                   <h2 className="text-2xl font-bold mb-4 text-purple-600">Luồng Super - Sắp ra mắt</h2>

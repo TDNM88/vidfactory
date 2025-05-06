@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import DashboardWorkflowBasicPlus from "@/components/dashboardworkflow-basic-plus"; 
+import DashboardWorkflowBasicPlus from '@/components/dashboardworkflow-basic-plus'
 import BasicPlusWelcome from "@/components/basic-plus-welcome"; 
 import { motion } from 'framer-motion';
 
