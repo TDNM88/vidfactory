@@ -57,7 +57,15 @@ const nextConfig = {
       },
     ],
   },
-  // Cấu hình output: 'standalone' đã được thêm ở trên
+  // Cấu hình module alias (từ .babelrc)
+  experimental: {},
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': '.',
+    };
+    return config;
+  },
 };
 
 module.exports = nextConfig;

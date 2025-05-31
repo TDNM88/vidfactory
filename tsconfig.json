@@ -41,6 +41,8 @@
     "bin/**/*",
     "*.cdk.ts",
     "*.cdk.js",
-    "*.cdk.d.ts"
+    "*.cdk.d.ts",
+    "lib/tdnm-stack.ts",
+    "lib/aws/**/*"
   ]
 }
