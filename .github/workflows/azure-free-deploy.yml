@@ -1,0 +1,36 @@
+name: Deploy to Azure Web App (Free Tier)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+      
+      - name: npm install and build
+        run: |
+          npm ci
+          npm run build
+      
+      - name: Zip artifact for deployment
+        run: zip -r release.zip . -x "node_modules/*" ".git/*"
+      
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'videofactory'
+          slot-name: 'Production'
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_20FD8F6F7C40437CB2B549909CE95E02 }}
+          package: release.zip
