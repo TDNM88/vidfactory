@@ -39,7 +39,6 @@
   "exclude": [
     "node_modules",
     "bin/**/*",
-    "lib/**/*",
     "*.cdk.ts",
     "*.cdk.js",
     "*.cdk.d.ts"
