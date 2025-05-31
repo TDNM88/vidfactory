@@ -20,14 +20,25 @@ class CreditService {
     error?: string;
   }> {
     try {
+      // Kiểm tra userId
+      if (typeof userId !== 'number' || isNaN(userId)) {
+        console.error(`userId không hợp lệ: ${userId} (${typeof userId})`);
+        return { success: false, error: `ID người dùng không hợp lệ: ${userId}` };
+      }
+
+      console.log(`Đang kiểm tra credit cho user ID: ${userId}, API: ${apiName}`);
+
       // Lấy thông tin người dùng
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
       });
 
       if (!user) {
+        console.error(`Không tìm thấy người dùng với ID: ${userId}`);
         return { success: false, error: 'Người dùng không tồn tại' };
       }
+
+      console.log(`Thông tin người dùng: ID=${user.id}, Credit=${user.credit}`);
 
       // Lấy thông tin giá của API
       const pricing = await this.prisma.apiPricing.findUnique({
@@ -35,16 +46,20 @@ class CreditService {
       });
 
       if (!pricing) {
+        console.error(`API không tồn tại trong hệ thống giá: ${apiName}`);
         return { success: false, error: 'API không tồn tại trong hệ thống giá' };
       }
 
+      console.log(`Thông tin giá API: ${apiName}, Cost=${pricing.creditCost}`);
+
       // Kiểm tra số dư tín dụng
       if (user.credit < pricing.creditCost) {
+        console.log(`Không đủ credit: Hiện có ${user.credit}, cần ${pricing.creditCost}`);
         return { 
           success: false, 
           user, 
           pricing, 
-          error: `Không đủ credit để sử dụng ${pricing.displayName}. Bạn cần ${pricing.creditCost} credit.` 
+          error: `Không đủ credit để sử dụng ${pricing.displayName}. Bạn cần ${pricing.creditCost} credit, hiện có ${user.credit} credit.` 
         };
       }
 

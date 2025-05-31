@@ -3,6 +3,19 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Thêm cấu hình để đảm bảo các biến môi trường được chuyển đến API routes
+  env: {
+    OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    GROQ_API_KEY: process.env.GROQ_API_KEY,
+    TENSOR_API_KEY: process.env.TENSOR_API_KEY,
+    TENSOR_API_URL: process.env.TENSOR_API_URL,
+    HF_TOKEN: process.env.HF_TOKEN,
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    VIDU_API_KEY: process.env.VIDU_API_KEY,
+    PEXELS_API_KEY: process.env.PEXELS_API_KEY,
+    DATABASE_URL: process.env.DATABASE_URL,
+  },
   // Add allowedDevOrigins for ngrok
   allowedDevOrigins: [
     'https://*.ngrok-free.app',

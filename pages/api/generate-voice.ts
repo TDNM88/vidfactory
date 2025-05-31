@@ -7,8 +7,10 @@ import fetch from 'node-fetch';
 import { phonemizeVietnamese } from '../../lib/phonemize-vi';
 import { PrismaClient } from '@prisma/client';
 import { verifyToken } from '../../lib/auth';
+import CreditService from '../../services/CreditService';
 
 const prisma = new PrismaClient();
+const creditService = new CreditService(prisma);
 
 // Define the response type
 type ResponseData = {
@@ -37,8 +39,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     if (!text || segmentIdx === undefined || !voiceName) {
       return res.status(400).json({ success: false, error: 'Missing required fields: text, segmentIdx, voiceName' });
     }
-    if (!voiceApiType || !['f5-tts', 'vixtts'].includes(voiceApiType)) {
-      return res.status(400).json({ success: false, error: 'Invalid or missing voiceApiType' });
+    if (!voiceApiType || voiceApiType !== 'vixtts') {
+      return res.status(400).json({ success: false, error: 'Invalid or missing voiceApiType. Only vixtts is supported.' });
+    }
+
+    // Kiểm tra và trừ credit của người dùng (1.5 credit cho mỗi lần tạo giọng đọc)
+    const creditResult = await creditService.deductCredit(
+      Number(user.id),
+      'generate-voice',
+      `Tạo giọng đọc cho phân đoạn ${segmentIdx}`,
+      { segmentIdx, voiceName, voiceApiType }
+    );
+
+    if (!creditResult.success) {
+      return res.status(402).json({ success: false, error: creditResult.error || 'Không đủ credit để tạo giọng đọc' });
     }
 
     // Phonemize the input text for better Vietnamese pronunciation
@@ -61,59 +75,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     // Absolute path for backend
     const audioAbsPath = outputPath;
 
-    // Select Gradio Space based on voiceApiType
-    const spaceId = voiceApiType === 'vixtts' ? 'sysf/vixtts-demo' : 'hynt/F5-TTS-Vietnamese-100h';
+    // Sử dụng Gradio Space của VixTTS
+    const spaceId = 'sysf/vixtts-demo';
     const hfToken = process.env.HF_TOKEN;
     const client = await Client.connect(spaceId, { hf_token: hfToken as `hf_${string}` | undefined });
 
-    // Prepare reference audio
-    let audioBuffer: Buffer;
-    const refAudioPath = path.join(process.cwd(), 'public', 'voices', voiceName);
-    if (fs.existsSync(refAudioPath)) {
-      audioBuffer = fs.readFileSync(refAudioPath);
+    // Chuẩn bị file âm thanh mẫu để gửi đến API tạo giọng đọc
+    let sampleAudioBuffer: Buffer;
+    const sampleVoicePath = path.join(process.cwd(), 'public', 'voices', voiceName);
+    if (fs.existsSync(sampleVoicePath)) {
+      sampleAudioBuffer = fs.readFileSync(sampleVoicePath);
     } else {
-      // Use default audio if reference is missing
-      const defaultAudioUrl =
-        voiceApiType === 'vixtts'
-          ? 'https://github.com/gradio-app/gradio/raw/main/test/test_files/audio_sample.wav'
-          : '';
-      const response = await fetch(defaultAudioUrl);
-      audioBuffer = Buffer.from(await response.arrayBuffer());
+      // Sử dụng file âm thanh mẫu mặc định nếu không tìm thấy file mẫu đã chọn
+      const defaultSampleVoiceUrl = 'https://github.com/gradio-app/gradio/raw/main/test/test_files/audio_sample.wav';
+      const response = await fetch(defaultSampleVoiceUrl);
+      sampleAudioBuffer = Buffer.from(await response.arrayBuffer());
     }
 
-    // Call Gradio API
+    // Gọi API VixTTS với file âm thanh mẫu để tạo giọng đọc mới
     let audioUrl: string;
-    if (voiceApiType === 'vixtts') {
-      const result: any = await client.predict('/predict', {
-        prompt: phonemizedText,
-        language: language || 'vi',
-        audio_file_pth: audioBuffer,
-        normalize_text: normalizeText !== undefined ? normalizeText : true,
-      });
+    const result: any = await client.predict('/predict', {
+      prompt: phonemizedText,
+      language: language || 'vi',
+      audio_file_pth: sampleAudioBuffer,
+      normalize_text: normalizeText !== undefined ? normalizeText : true,
+    });
 
-      if (!result || !result.data || !result.data[0]) {
-        // Trả về lỗi chi tiết nếu có
-        return res.status(500).json({
-          success: false,
-          error: result?.message || result?.error || 'No audio file received from VixTTS API',
-        });
-      }
-      audioUrl = result.data[0].url || result.data[0];
-    } else {
-      const result: any = await client.predict('/infer_tts', {
-        ref_audio_orig: audioBuffer,
-        gen_text: phonemizedText,
-        speed: speed || 1,
+    if (!result || !result.data || !result.data[0]) {
+      // Trả về lỗi chi tiết nếu có
+      return res.status(500).json({
+        success: false,
+        error: result?.message || result?.error || 'No audio file received from VixTTS API',
       });
-
-      if (!result || !result.data || !result.data[0]) {
-        return res.status(500).json({
-          success: false,
-          error: result?.message || result?.error || 'No audio file received from F5-TTS API',
-        });
-      }
-      audioUrl = result.data[0].url || result.data[0];
     }
+    audioUrl = result.data[0].url || result.data[0];
 
     // Download and save the audio file
     const response = await fetch(audioUrl);

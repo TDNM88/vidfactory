@@ -9,20 +9,33 @@ const validStyles = ["cinematic", "anime", "flat lay", "realistic"];
 const prisma = new PrismaClient();
 const creditService = new CreditService(prisma);
 
-// Utility function to call OpenRouter with retry logic
+// Utility function to call Groq API with retry logic
 async function callOpenRouter(prompt: string, apiKey: string, retries = 3) {
+  console.log('Sử dụng Groq API với model meta-llama/llama-4-scout-17b-16e-instruct');
+  
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      // Lấy API key của Groq từ biến môi trường hoặc sử dụng giá trị cứng
+      const groqApiKey = process.env.GROQ_API_KEY || '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';
+      
+      if (!groqApiKey) {
+        throw new Error('Groq API key không được cung cấp');
+      }
+      
+      console.log('Sử dụng Groq API key:', groqApiKey.substring(0, 10) + '...');
+      
+      const headers = {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${groqApiKey}`,
+      };
+      
+      console.log('Headers:', Object.keys(headers).join(', '));
+      
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-          "HTTP-Referer": "https://your-vercel-app.vercel.app",
-          "X-Title": "Social Video Generator",
-        },
+        headers,
         body: JSON.stringify({
-          model: "meta-llama/llama-4-maverick:free",
+          model: "meta-llama/llama-4-scout-17b-16e-instruct",
           messages: [
             { role: "system", content: "Bạn là một chuyên gia viết kịch bản video cho mạng xã hội." },
             { role: "user", content: prompt },
@@ -56,11 +69,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     console.log('API /api/generate-script được gọi');
     
-    // Xác thực người dùng
-    const user = await verifyToken(req, prisma);
-    if (!user) {
-      console.log('Xác thực thất bại: Không có người dùng');
-      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    // Xác thực người dùng - bỏ qua trong môi trường phát triển
+    let user;
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Đang ở môi trường phát triển, bỏ qua xác thực');
+      // Tạo user giả cho môi trường phát triển với ID là số
+      user = {
+        id: 9999,
+        username: 'dev-user',
+        email: 'dev@example.com',
+        credit: 1000
+      };
+    } else {
+      try {
+        user = await verifyToken(req, prisma);
+        if (!user) {
+          console.log('Xác thực thất bại: Không có người dùng');
+          return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
+        
+        // Kiểm tra xem user có tồn tại và có credit field không
+        if (!user.hasOwnProperty('credit')) {
+          console.error('Lỗi: Người dùng không có thông tin credit');
+          return res.status(400).json({ success: false, error: 'Thông tin người dùng không đầy đủ' });
+        }
+        
+        console.log(`Thông tin người dùng: ID=${user.id} (${typeof user.id}), Credit=${user.credit}`);
+      } catch (authError) {
+        console.error('Lỗi xác thực:', authError);
+        return res.status(401).json({ success: false, error: 'Lỗi xác thực người dùng' });
+      }
     }
     
     console.log(`Người dùng đã xác thực: ${user.username} (ID: ${user.id})`);
@@ -86,12 +124,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Kiểm tra và trừ credit
-    const creditResult = await creditService.deductCredit(
-      user.id, 
-      'generate-script', 
-      'Tạo kịch bản',
-      { username: user.username }
-    );
+    let creditResult;
+    try {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Đang ở môi trường phát triển, bỏ qua kiểm tra credit');
+        creditResult = { 
+          success: true,
+          creditCost: 1,
+          remainingCredit: user.credit
+        };
+      } else {
+        // Đảm bảo user.id là số
+        const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+        
+        // Kiểm tra xem userId có phải là số hợp lệ không
+        if (isNaN(userId)) {
+          throw new Error(`user.id không hợp lệ: ${user.id}`);
+        }
+        
+        console.log(`Trừ credit cho user ID: ${userId}`);
+        
+        creditResult = await creditService.deductCredit(
+          userId,
+          'generate-script', 
+          'Tạo kịch bản',
+          { username: user.username }
+        );
+        
+        console.log('Kết quả trừ credit:', JSON.stringify(creditResult));
+      }
+    } catch (creditError) {
+      console.error('Lỗi xử lý credit:', creditError);
+      return res.status(400).json({ 
+        success: false, 
+        error: creditError instanceof Error ? creditError.message : 'Lỗi khi kiểm tra và trừ credit' 
+      });
+    }
 
     if (!creditResult.success) {
       console.log('Không thể trừ credit:', creditResult.error);
@@ -101,13 +169,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log(`User ${user.username} deducted ${creditResult.creditCost} credits for script generation`);
 
     const session_id = crypto?.randomUUID?.() || Math.random().toString(36).substring(2);
-    const openRouterApiKey = process.env.OPENROUTER_API_KEY;
-    if (!openRouterApiKey) {
-      console.log('Thiếu OpenRouter API key');
-      return res.status(500).json({ success: false, error: "OpenRouter API key không được cấu hình" });
+    
+    // Không cần sử dụng API key ở đây vì đã sử dụng Groq API trong hàm callOpenRouter
+    // Với hàm callOpenRouter đã được cập nhật để sử dụng Groq API key trực tiếp
+    const dummyApiKey = 'dummy-key'; // Chỉ để gọi hàm, không có tác dụng thực tế
+    
+    console.log('Sử dụng Groq API với model meta-llama/llama-4-scout-17b-16e-instruct');
+    
+    // Kiểm tra xem Groq API key có được cấu hình trong môi trường không
+    const groqApiKey = process.env.GROQ_API_KEY || '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';
+    if (!groqApiKey) {
+      console.log('Thiếu Groq API key');
+      return res.status(500).json({ success: false, error: "Groq API key không được cấu hình" });
     }
 
-    console.log('Đang xây dựng prompt cho OpenRouter API...');
+    console.log('Đang xây dựng prompt cho Groq API...');
 
     // Xác định số phân đoạn tối đa dựa trên workflow
     let maxSegments = 5; // Mặc định cho Basic
@@ -152,8 +228,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log('Prompt đã được xây dựng:', prompt);
 
-    const data = await callOpenRouter(prompt, openRouterApiKey);
-    console.log('Đã nhận được phản hồi từ OpenRouter API:', data);
+    const data = await callOpenRouter(prompt, dummyApiKey);
+    console.log('Đã nhận được phản hồi từ Groq API:', data);
 
     if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
       console.error("Unexpected response format:", data);

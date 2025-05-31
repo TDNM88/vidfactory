@@ -1,13 +1,28 @@
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 
+export interface PexelsImageData {
+  id: number;
+  url: string;
+  width: number;
+  height: number;
+  photographer: string;
+  photographer_url: string;
+  alt: string;
+  pexels_url: string;
+}
+
 export interface Segment {
   script: string;
   image_description?: string;
   direct_image_url?: string;
   voice_url?: string;
   voiceName?: string;
-  // Basic có thể có thêm các trường phụ như image_path, image_base64, ...
+  // Thông tin ảnh Pexels cho luồng basic
+  pexels_data?: PexelsImageData;
+  // Các trường khác
+  image_path?: string;
+  image_base64?: string;
   [key: string]: any;
 }
 
@@ -20,9 +35,10 @@ export interface Script {
   [key: string]: any;
 }
 
+// Định nghĩa tùy chọn giọng đọc mẫu để gửi đến API tạo giọng đọc
 export interface VoiceOption {
-  fileName: string;
-  displayName: string;
+  fileName: string;    // Tên file giọng đọc mẫu trong thư mục public/voices
+  displayName: string; // Tên hiển thị của giọng đọc mẫu
 }
 
 export interface StoryboardWorkflowConfig {

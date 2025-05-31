@@ -13,9 +13,12 @@ const DUMMY_SCRIPT: Script = {
     { script: "Đây là phân đoạn 2" }
   ]
 };
+
+// Sử dụng giọng mẫu có sẵn từ thư mục public\voices
 const DUMMY_VOICE_OPTIONS = [
-  { fileName: "voice1.mp3", displayName: "Voice 1" },
-  { fileName: "voice2.mp3", displayName: "Voice 2" }
+  { fileName: "Mai An.wav", displayName: "Mai An (Nữ)" },
+  { fileName: "Phan Linh.wav", displayName: "Phan Linh (Nữ)" },
+  { fileName: "Trường Giang.wav", displayName: "Trường Giang (Nam)" }
 ];
 
 export default function BasicPlusWorkflowPage() {
