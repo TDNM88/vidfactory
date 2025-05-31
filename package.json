@@ -9,7 +9,6 @@
     "lint": "next lint",
     "verify-deployment": "node scripts/verify-deployment.js",
     "check-deployment": "node scripts/check-deployment.js",
-    "check-deployment:azure": "node scripts/check-deployment.js --url=https://videofactory.azurewebsites.net",
     "check-deployment:render": "node scripts/check-deployment.js --url=https://tdnm-app.onrender.com",
     "check-ffmpeg": "node -e \"const { execSync } = require('child_process'); try { console.log(execSync('ffmpeg -version').toString()); } catch(e) { console.error('FFmpeg not found:', e.message); process.exit(1); }\""
   },

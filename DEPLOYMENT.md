@@ -1,16 +1,15 @@
 # Deployment Guide for TDNM App | Hướng dẫn Triển khai Ứng dụng TDNM
 
-This guide provides instructions for deploying the TDNM Next.js application with ffmpeg support to both Azure Web App and Render.com.
+This guide provides instructions for deploying the TDNM Next.js application with ffmpeg support to Render.com.
 
-*Hướng dẫn này cung cấp chỉ dẫn để triển khai ứng dụng Next.js TDNM với hỗ trợ ffmpeg lên cả Azure Web App và Render.com.*
+*Hướng dẫn này cung cấp chỉ dẫn để triển khai ứng dụng Next.js TDNM với hỗ trợ ffmpeg lên Render.com.*
 
 ## Prerequisites | Yêu cầu tiên quyết
 
 - Node.js 20.x
 - npm or yarn
 - Git
-- Azure account (for Azure deployment) | Tài khoản Azure (cho triển khai Azure)
-- Render.com account (for Render.com deployment) | Tài khoản Render.com (cho triển khai Render.com)
+- Render.com account | Tài khoản Render.com
 
 ## Environment Variables | Biến Môi trường
 
@@ -33,32 +32,7 @@ DATABASE_URL
 NODE_ENV=production
 ```
 
-## Azure Web App Deployment | Triển khai Azure Web App
 
-### Option 1: GitHub Actions CI/CD (Recommended) | Tùy chọn 1: GitHub Actions CI/CD (Khuyến nghị)
-
-1. Push your code to GitHub | Đẩy mã của bạn lên GitHub
-2. Create an Azure Web App | Tạo Azure Web App
-   - Select Node.js 20 LTS as the runtime stack | Chọn Node.js 20 LTS làm ngăn xếp runtime
-   - Choose the appropriate pricing tier (Free tier F1 has limitations) | Chọn gói giá phù hợp (Gói miễn phí F1 có giới hạn)
-3. Configure GitHub Actions | Cấu hình GitHub Actions
-   - The workflow file is already set up at `.github/workflows/azure-deploy.yml` | File workflow đã được thiết lập tại `.github/workflows/azure-deploy.yml`
-   - Add your Azure publish profile to GitHub Secrets as `AZUREAPPSERVICE_PUBLISHPROFILE_20FD8F6F7C40437CB2B549909CE95E02` | Thêm hồ sơ xuất bản Azure vào GitHub Secrets với tên `AZUREAPPSERVICE_PUBLISHPROFILE_20FD8F6F7C40437CB2B549909CE95E02`
-   - Add all required API keys to GitHub Secrets | Thêm tất cả các khóa API cần thiết vào GitHub Secrets
-
-4. Trigger the workflow by pushing to the main branch or manually from GitHub Actions tab | Kích hoạt workflow bằng cách đẩy lên nhánh main hoặc thủ công từ tab GitHub Actions
-
-5. Verify the deployment using the verification tools | Xác minh việc triển khai bằng các công cụ kiểm tra
-   ```bash
-   npm run check-deployment:azure
-   ```
-
-### Option 2: Docker Deployment
-
-1. Create an Azure Container Registry
-2. Build and push the Docker image using the provided Dockerfile
-3. Create an Azure Web App with Docker container
-4. Configure the Web App to use your Docker image
 
 ## Render.com Deployment | Triển khai Render.com
 
@@ -129,9 +103,7 @@ npm run check-ffmpeg
 # Kiểm tra triển khai cục bộ
 npm run check-deployment
 
-# Check Azure deployment
-# Kiểm tra triển khai Azure
-npm run check-deployment:azure
+
 
 # Check Render.com deployment
 # Kiểm tra triển khai Render.com
@@ -167,15 +139,6 @@ npm run check-deployment:render
    - Verify media directories exist and are writable | Xác minh các thư mục phương tiện tồn tại và có thể ghi được
 
 ## Limitations of Free Tier Services | Giới hạn của Dịch vụ Gói Miễn phí
-
-### Azure Free Tier (F1) Limitations | Giới hạn của Gói Azure Miễn phí (F1)
-
-- Limited to 60 minutes of CPU time per day | Giới hạn 60 phút thời gian CPU mỗi ngày
-- 1GB RAM | 1GB RAM
-- 1GB storage | 1GB lưu trữ
-- Application goes to sleep after 20 minutes of inactivity | Ứng dụng ngủ sau 20 phút không hoạt động
-- No custom domain support | Không hỗ trợ tên miền tùy chỉnh
-- Limited video processing capabilities due to resource constraints | Khả năng xử lý video bị hạn chế do giới hạn tài nguyên
 
 ### Render.com Free Tier Limitations | Giới hạn của Gói Render.com Miễn phí
 
@@ -256,6 +219,6 @@ scripts/
   ├── check-deployment.js        # Checks deployment status | Kiểm tra trạng thái triển khai
   └── verify-deployment.js       # Verifies deployment functionality | Xác minh chức năng triển khai
 render-build.sh                  # Build script for Render.com | Script build cho Render.com
-startup.sh                       # Startup script for Azure | Script khởi động cho Azure
+
 start.sh                         # Startup script for Render.com | Script khởi động cho Render.com
 ```

@@ -1,7 +1,7 @@
 /**
  * TDNM App Deployment Verification Tool
  * 
- * This script checks the deployment status of your TDNM application on Azure or Render.com
+ * This script checks the deployment status of your TDNM application on Render.com
  * It verifies:
  * - Application health
  * - ffmpeg installation and functionality
@@ -112,9 +112,7 @@ function detectPlatform(url) {
   const parsedUrl = new URL(url);
   const hostname = parsedUrl.hostname.toLowerCase();
   
-  if (hostname.includes('azurewebsites.net')) {
-    return 'Azure';
-  } else if (hostname.includes('onrender.com')) {
+  if (hostname.includes('onrender.com')) {
     return 'Render.com';
   } else if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
     return 'Local';
@@ -304,12 +302,7 @@ async function runVerification() {
     printMessage('All tests passed! Your deployment appears to be working correctly.', 'success');
     
     // Platform-specific recommendations
-    if (platform === 'Azure') {
-      console.log('\nAzure Deployment Recommendations:');
-      console.log('1. Monitor your free tier resource usage (60 minutes CPU/day limit)');
-      console.log('2. Check Application Insights for performance metrics');
-      console.log('3. Consider setting up auto-scaling rules if you upgrade to a paid tier');
-    } else if (platform === 'Render.com') {
+    if (platform === 'Render.com') {
       console.log('\nRender.com Deployment Recommendations:');
       console.log('1. Monitor your disk usage (1GB limit on free tier)');
       console.log('2. Check Render logs for any warnings or errors');
@@ -331,12 +324,7 @@ async function runVerification() {
     console.log('4. Confirm all environment variables are set correctly');
     console.log('5. Restart the application after making changes');
     
-    if (platform === 'Azure') {
-      console.log('\nAzure-Specific Troubleshooting:');
-      console.log('1. Check the Azure Portal for application logs');
-      console.log('2. Verify that the startup.sh script is being executed');
-      console.log('3. Check if the application is running out of memory or CPU');
-    } else if (platform === 'Render.com') {
+    if (platform === 'Render.com') {
       console.log('\nRender.com-Specific Troubleshooting:');
       console.log('1. Check the Render dashboard for logs and errors');
       console.log('2. Verify that the render-build.sh and start.sh scripts are being executed');

@@ -1,7 +1,7 @@
 #!/bin/bash
 # TDNM App ffmpeg installation and verification script
 # This script installs ffmpeg and verifies it's working correctly
-# Compatible with both Azure and Render.com environments
+# Optimized for Render.com environment
 
 set -e
 
@@ -12,9 +12,7 @@ echo "Current directory: $(pwd)"
 echo "System information: $(uname -a)"
 
 # Detect environment
-if [ -n "$WEBSITE_SITE_NAME" ]; then
-  ENVIRONMENT="Azure"
-elif [ -n "$RENDER" ]; then
+if [ -n "$RENDER" ]; then
   ENVIRONMENT="Render"
 else
   ENVIRONMENT="Unknown"
@@ -31,12 +29,7 @@ command_exists() {
 install_ffmpeg() {
   echo "Installing ffmpeg..."
   
-  if [ "$ENVIRONMENT" = "Azure" ]; then
-    # Azure Web App (Ubuntu-based)
-    echo "Installing ffmpeg on Azure (Ubuntu)..."
-    apt-get update -y
-    apt-get install -y ffmpeg
-  elif [ "$ENVIRONMENT" = "Render" ]; then
+  if [ "$ENVIRONMENT" = "Render" ]; then
     # Render.com
     echo "Installing ffmpeg on Render..."
     apt-get update -y
