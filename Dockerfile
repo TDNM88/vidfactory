@@ -1,38 +1,34 @@
-FROM node:18
+FROM node:18-alpine AS base
 
-# Install FFmpeg
-RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
+# Cài đặt ffmpeg
+FROM base AS deps
+RUN apk add --no-cache ffmpeg
 
-# Set working directory
+# Cài đặt các dependencies
 WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm ci
 
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm install
-
-# Copy only necessary files, excluding CDK-related files
-COPY .env .
-COPY app/ ./app/
-COPY components/ ./components/
-COPY config/ ./config/
-COPY hooks/ ./hooks/
-COPY pages/ ./pages/
-COPY public/ ./public/
-COPY services/ ./services/
-COPY styles/ ./styles/
-COPY tailwind.config.ts ./
-COPY tsconfig.json ./
-COPY next.config.js ./
-
-# Build the application
+# Build ứng dụng
+FROM deps AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
 RUN npm run build
 
-# Expose port 3000
+# Production image
+FROM deps AS runner
+WORKDIR /app
+
+ENV NODE_ENV production
+
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+
 EXPOSE 3000
 
-# Start the application
-CMD ["npm", "start"]
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
+
+CMD ["node", "server.js"]
