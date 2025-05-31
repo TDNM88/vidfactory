@@ -6,9 +6,9 @@ import { VoiceOption, Script } from './useStoryboardWorkflow';
 interface DashboardWorkflowPremiumProps {
   script?: Script;
   voiceOptions: VoiceOption[];
-  voiceApiType: 'f5-tts' | 'vixtts';
+  voiceApiType: 'vixtts';
   onVoiceChange: (idx: number, voiceName: string) => void;
-  onGenerateVoiceForSegment: (idx: number, voiceApiType: 'f5-tts' | 'vixtts') => Promise<void>;
+  onGenerateVoiceForSegment: (idx: number, voiceApiType?: 'vixtts') => Promise<void>;
   onEditImageDesc: (idx: number, desc: string) => void;
   onGenerateImageForSegment: (idx: number, style: 'realistic' | 'anime') => Promise<void>;
   onConfirm: () => void;

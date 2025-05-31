@@ -26,11 +26,11 @@ export default function BasicPlusWorkflowPage() {
   // State for script, voice options, and api type (should be replaced with real logic)
   const [script, setScript] = useState(DUMMY_SCRIPT);
   const [voiceOptions] = useState(DUMMY_VOICE_OPTIONS);
-  const [voiceApiType] = useState<'f5-tts' | 'vixtts'>('f5-tts');
+  const [voiceApiType] = useState<'vixtts'>('vixtts');
 
   // Dummy handlers (replace with real logic)
   const onVoiceChange = (idx: number, voiceName: string) => {};
-  const onGenerateVoiceForSegment = async (idx: number, voiceApiType: 'f5-tts' | 'vixtts') => {};
+  const onGenerateVoiceForSegment = async (idx: number, voiceApiType?: 'vixtts') => {};
   const onEditImageDesc = (idx: number, desc: string) => {};
   const onGenerateImageForSegment = async (idx: number, style: 'realistic' | 'anime') => {};
   const onConfirm = () => {};
