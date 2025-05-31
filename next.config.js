@@ -57,9 +57,7 @@ const nextConfig = {
       },
     ],
   },
-  // Loại bỏ cấu hình không hoạt động
-  // output: 'standalone',
-  // distDir: '.next',
+  // Cấu hình output: 'standalone' đã được thêm ở trên
 };
 
 module.exports = nextConfig;

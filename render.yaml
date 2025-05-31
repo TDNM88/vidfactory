@@ -1,0 +1,68 @@
+services:
+  - type: web
+    name: tdnm-app
+    env: node
+    region: singapore
+    plan: free
+    buildCommand: chmod +x ./render-build.sh && ./render-build.sh
+    startCommand: ./start.sh
+    nodeVersion: 20.x
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: TENSOR_API_URL
+        sync: false
+      - key: TENSOR_API_KEY
+        sync: false
+      - key: HF_TOKEN
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: VIDU_API_KEY
+        sync: false
+      - key: PEXELS_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_BASE_URL
+        sync: false
+    disk:
+      name: tdnm-data
+      mountPath: /data
+      sizeGB: 1
+    buildFilter:
+      paths:
+        - app/**
+        - components/**
+        - lib/**
+        - pages/**
+        - public/**
+        - styles/**
+        - utils/**
+        - hooks/**
+        - services/**
+        - next.config.js
+        - package.json
+        - package-lock.json
+        - tsconfig.json
+        - render-build.sh
+        - render.dockerfile
+    autoDeploy: true
+    healthCheckPath: /api/health
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+      - path: /*
+        name: X-XSS-Protection
+        value: 1; mode=block
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /
